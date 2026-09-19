@@ -143,10 +143,13 @@ ZygiskAIRuntime/
 │
 ├── module/                         Magisk 模块外壳
 │   ├── module.prop                 ✅ id / name / version
-│   ├── customize.sh                ✅ 校验产物存在，缺 so 直接 abort
+│   ├── customize.sh                ✅ 校验产物存在，缺 so 直接 abort；权限设置跳过 webroot
 │   ├── post-fs-data.sh             ✅ 空（Runtime 由 Zygisk 拉起，无需此阶段）
 │   ├── service.sh                  ✅ 空（companion 守护侧，M2 接线）
 │   ├── uninstall.sh                ✅ 只清本模块写过的路径
+│   ├── webroot/                    ✅ 模块 WebUI（KernelSU 管理器「打开」入口）
+│   │   ├── index.html              ✅ 全景 · 注入目标配置 · 运行时日志
+│   │   └── ksu.js                  ✅ ksu 注入对象薄封装（零构建）
 │   └── zygisk/
 │       ├── README.md               ✅ 产物落位说明
 │       └── arm64-v8a.so            ⚠️ 构建产物，当前不存在

@@ -263,9 +263,17 @@ CAPABILITY_KEYS_NETWORK = (
 # 因此协议层与 Bridge 支持两种端点，UDS 优先，TCP 回环作为等价回退：
 #
 #     unix:/data/local/tmp/ai-analyzer/analyzer.sock
-#     tcp:127.0.0.1:27901
+#     tcp:127.0.0.1:60500
 #
 # 帧格式、消息格式、握手流程两种传输完全一致 —— 传输层不改变协议。
+#
+# TCP 端点由项目所有者 2026-09-19 裁定为 127.0.0.1:60500（原为 27901）。
+# 固定绑定回环：Runtime 带 root 能力，监听 0.0.0.0 等于把设备内存读写权限
+# 开给同一网段的任何人，故不提供 host 覆盖项。
+#
+# 真机用法（PC 侧转发到设备）：
+#     adb forward tcp:60500 tcp:60500
+#     python -m ai_analyzer.host --endpoint tcp:127.0.0.1:60500
 
 TRANSPORT_UNIX = "unix"
 TRANSPORT_TCP = "tcp"
@@ -276,7 +284,13 @@ DEFAULT_SOCKET_PATH = "/data/local/tmp/ai-analyzer/analyzer.sock"
 DEFAULT_LOCAL_SOCKET_PATH = ".ai-analyzer/analyzer.sock"
 """本机（Mock / 开发）UDS 路径，相对工程根。"""
 
-DEFAULT_TCP_ENDPOINT = "tcp:127.0.0.1:27901"
-"""TCP 回环端点。用于无 AF_UNIX 的宿主，或 adb forward 到设备 UDS。"""
+DEFAULT_TCP_HOST = "127.0.0.1"
+"""TCP 端点绑定地址。固定回环，不得改为 0.0.0.0。"""
+
+DEFAULT_TCP_PORT = 60500
+"""TCP 端点端口。2026-09-19 裁定（取代原 27901）。"""
+
+DEFAULT_TCP_ENDPOINT = f"tcp:{DEFAULT_TCP_HOST}:{DEFAULT_TCP_PORT}"
+"""TCP 回环端点。用于无 AF_UNIX 的宿主，或 adb forward 到设备侧。"""
 
 ENDPOINT_SCHEME_SEP = ":"

@@ -29,4 +29,23 @@ for dir in "$MODPATH"/zygisk/*; do
   esac
 done
 
-set_perm_recursive "$MODPATH" 0 0 0755 0644
+# 逐个设置权限，但**必须跳过 webroot**。
+#
+# KernelSU 官方文档明确警告：安装时 KSU 会自行设置 webroot 目录的权限与
+# SELinux context，「如果不知道自己在做什么，请不要自行设置该目录的权限」。
+# 这里若沿用原来的 set_perm_recursive "$MODPATH"，会把 KSU 设好的 context
+# 与权限一起覆盖掉，结果是模块 WebUI 在管理器里加载失败（页面打不开）。
+#
+# 同时顺手修正权限粒度：脚本 0755，其它文件 0644（原来整棵树的文件都是 0644）。
+for item in "$MODPATH"/*; do
+  [ -e "$item" ] || continue
+  [ "$(basename "$item")" = "webroot" ] && continue
+  if [ -d "$item" ]; then
+    set_perm_recursive "$item" 0 0 0755 0644
+  else
+    case "$item" in
+      *.sh) set_perm "$item" 0 0 0755 ;;
+      *)    set_perm "$item" 0 0 0644 ;;
+    esac
+  fi
+done

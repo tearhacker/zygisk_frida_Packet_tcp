@@ -47,16 +47,26 @@ def verify_three_point_registration(
             problems.append(f"[懒加载] {name} 解析结果不可调用：{fn!r}")
 
     # --- 第 3 处：分面可见（Core 必然可见；Expert 需挂载）---
-    sm.mount_all()
-    visible_all = set(sm.visible_names())
-    missing = sorted(set(SPECS_BY_NAME) - visible_all)
-    if missing:
-        problems.append(f"[分面可见] 未挂载全部 Expert 组时缺失：{missing}")
+    #
+    # ⚠️ 曾经的真实 bug：这里调用 sm.mount_all() 后**没有恢复**，
+    #    而 build_server() 是先校验、再 bind_tools()，于是无论 --mount 传什么
+    #    （甚至不传），Expert 10 个都会被永久挂载 —— 实测默认暴露 35 个，
+    #    Core/Expert 分面门控形同虚设。
+    #    校验属于"临时"行为，必须原样恢复调用方的挂载状态。
+    saved = sm.mounted_snapshot()
+    try:
+        sm.mount_all()
+        visible_all = set(sm.visible_names())
+        missing = sorted(set(SPECS_BY_NAME) - visible_all)
+        if missing:
+            problems.append(f"[分面可见] 未挂载全部 Expert 组时缺失：{missing}")
 
-    core_visible = set(sm.visible_names(None))
-    for spec in SPECS_BY_NAME.values():
-        if spec.surface.value == "core" and spec.name not in core_visible:
-            problems.append(f"[分面可见] Core 工具不可见：{spec.name}")
+        core_visible = set(sm.visible_names(None))
+        for spec in SPECS_BY_NAME.values():
+            if spec.surface.value == "core" and spec.name not in core_visible:
+                problems.append(f"[分面可见] Core 工具不可见：{spec.name}")
+    finally:
+        sm.restore_mounted(saved)
 
     return problems
 

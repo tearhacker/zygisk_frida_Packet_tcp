@@ -18,7 +18,7 @@
     unix:/data/local/tmp/ai-analyzer/analyzer.sock     设备侧 UDS
     unix:/tmp/zai.sock                                 本机 UDS
     /tmp/zai.sock                                      裸路径，等价 unix:
-    tcp:127.0.0.1:27901                                TCP 回环
+    tcp:127.0.0.1:60500                                TCP 回环
     tcp:127.0.0.1:0                                    服务端用：绑定临时端口
 """
 

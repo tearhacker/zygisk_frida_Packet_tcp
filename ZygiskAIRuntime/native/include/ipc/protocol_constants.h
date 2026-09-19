@@ -199,5 +199,12 @@ enum class HttpsCapability : int {
 
 #define ZAI_DEFAULT_SOCKET_PATH     "/data/local/tmp/ai-analyzer/analyzer.sock"
 
+// TCP 回环端点（2026-09-19 裁定端口 60500，取代原 27901）。
+// 固定绑定回环：Runtime 带 root 能力，监听 0.0.0.0 等于把设备内存读写权限
+// 开给同一网段的任何人。真机部署时由 PC 侧 `adb forward tcp:60500 tcp:60500` 接入。
+#define ZAI_DEFAULT_TCP_HOST        "127.0.0.1"
+#define ZAI_DEFAULT_TCP_PORT        60500
+#define ZAI_DEFAULT_TCP_ENDPOINT    "tcp:127.0.0.1:60500"
+
 }  // namespace protocol
 }  // namespace zai

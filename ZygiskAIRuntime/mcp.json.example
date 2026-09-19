@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "zy_packet_tearhacker": {
+      "type": "sse",
+      "url": "http://127.0.0.1:60501/sse",
+      "description": "Zygisk AI Runtime - Android 动态分析（hook / 内存 / 抓包）"
+    }
+  }
+}

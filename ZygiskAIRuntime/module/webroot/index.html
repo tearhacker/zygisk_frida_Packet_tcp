@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zygisk AI Runtime</title>
+<style>
+  :root {
+    --bg: #0f1116;
+    --card: #171a21;
+    --line: rgba(255, 255, 255, .07);
+    --text: #e8eaed;
+    --muted: #9aa4b2;
+    --ok: #4fd1a5;
+    --okbg: rgba(29, 158, 117, .16);
+    --warn: #ef9f27;
+    --warnbg: rgba(186, 117, 23, .18);
+    --err: #f09595;
+    --errbg: rgba(226, 75, 74, .16);
+    --idlebg: rgba(255, 255, 255, .07);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans CJK SC", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 16px 14px calc(24px + env(safe-area-inset-bottom));
+  }
+  h1 { font-size: 18px; font-weight: 500; margin: 0 0 2px; }
+  h2 { font-size: 14px; font-weight: 500; margin: 0 0 10px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: 0; }
+  .k { color: var(--muted); flex: none; }
+  .v { text-align: right; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; }
+  .badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ok { background: var(--okbg); color: var(--ok); }
+  .warn { background: var(--warnbg); color: var(--warn); }
+  .err { background: var(--errbg); color: var(--err); }
+  .idle { background: var(--idlebg); color: var(--muted); }
+  .banner {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .banner-warn { background: var(--warnbg); color: var(--warn); }
+  .hidden { display: none; }
+  .target {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 16px;
+    padding: 10px;
+    background: #0b0d12;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    word-break: break-all;
+  }
+  input[type=text] {
+    width: 100%;
+    background: #0b0d12;
+    border: 1px solid rgba(255, 255, 255, .13);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .btnrow { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  button {
+    background: #262b35;
+    color: var(--text);
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 15px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  button.primary { background: #1d9e75; color: #04140e; font-weight: 500; }
+  button:disabled { opacity: .5; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  pre.log {
+    background: #0b0d12;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    max-height: 320px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 10px 0 0;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+  .svcbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--idlebg);
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #888780; flex: none; }
+  .svcbar.s-ok { background: var(--okbg); color: var(--ok); }
+  .svcbar.s-ok .dot { background: var(--ok); }
+  .svcbar.s-wait { background: rgba(55, 138, 221, .16); color: #85b7eb; }
+  .svcbar.s-wait .dot { background: #85b7eb; }
+  .svcbar.s-boot { background: var(--warnbg); color: var(--warn); }
+  .svcbar.s-boot .dot { background: var(--warn); }
+  .svcbar.s-off { background: var(--idlebg); color: var(--muted); }
+  .svcbar.s-off .dot { background: #888780; }
+  ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+  li { margin-bottom: 3px; }
+</style>
+</head>
+<body>
+
+<h1>Zygisk AI Runtime</h1>
+<div class="sub">模块全景 · 注入目标配置 · 运行时日志</div>
+
+<div id="envBanner" class="banner banner-warn hidden"></div>
+
+<section class="card">
+  <h2>服务状态</h2>
+  <div class="svcbar s-off" id="svcBar">
+    <span class="dot"></span><span id="svcText">检测中…</span>
+  </div>
+  <div class="row"><span class="k">Runtime 端口 60500</span><span class="v" id="svcListen">—</span></div>
+  <div class="row"><span class="k">已接入客户端</span><span class="v" id="svcClients">—</span></div>
+  <div class="row"><span class="k">目标进程</span><span class="v" id="svcProc">—</span></div>
+  <div class="hint" id="svcHint">检测中…</div>
+  <div class="btnrow">
+    <button id="btnRefreshSvc">刷新</button>
+    <button id="btnAutoSvc">自动刷新：关</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>模块全景</h2>
+  <div id="overview"><div class="row"><span class="k">读取中</span><span class="v">…</span></div></div>
+</section>
+
+<section class="card">
+  <h2>注入目标</h2>
+  <div class="target" id="targetNow">…</div>
+  <input type="text" id="pkgInput" list="pkgList" placeholder="输入或选择包名，如 com.example.app" autocomplete="off">
+  <datalist id="pkgList"></datalist>
+  <div class="btnrow">
+    <button class="primary" id="btnSave">保存</button>
+    <button id="btnClear">清空（停止注入）</button>
+    <button id="btnLoadPkgs">从已装应用选择</button>
+  </div>
+  <div class="hint" id="saveHint">
+    配置写入 <span style="font-family:ui-monospace,monospace">target.conf</span>。目标进程在启动时读取配置，
+    <b>改完必须重启目标 App 才生效</b>；模块不会自动杀进程。清空后任何 App 都不会被注入。
+  </div>
+</section>
+
+<section class="card">
+  <h2>运行时证据</h2>
+  <div class="row"><span class="k">注入链路是否跑过</span><span class="v" id="injectVerdict"><span class="badge idle">读取中</span></span></div>
+  <div class="hint" style="margin-bottom:2px">
+    判定依据：logcat 中是否出现 <span style="font-family:ui-monospace,monospace">ZAI:Bootstrap</span> 的 specialize 记录。
+    这是目前唯一可信的运行时证据。
+  </div>
+  <pre class="log" id="logView">…</pre>
+  <div class="btnrow"><button id="btnRefreshLog">刷新日志</button></div>
+</section>
+
+<section class="card">
+  <h2>状态说明</h2>
+  <div class="row"><span class="k">IPC 连接状态</span><span class="v"><span class="badge idle">未实现 · M2</span></span></div>
+  <div class="row"><span class="k">Hook / 内存面板</span><span class="v"><span class="badge idle">未实现 · M3</span></span></div>
+  <ul>
+    <li><b>已验证</b>：有真实命令输出作证。</li>
+    <li><b>未验证</b>：命令没跑通或无输出，不猜测。</li>
+    <li><b>未实现</b>：功能本身还没做，不做占位美化。</li>
+  </ul>
+</section>
+
+<script src="ksu.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var MODDIR = '/data/adb/modules/zygisk-ai-runtime';
+  var TARGET = MODDIR + '/target.conf';
+  var PKG_RE = /^[A-Za-z0-9_.]+$/;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function badge(cls, text) {
+    return '<span class="badge ' + cls + '">' + text + '</span>';
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /**
+   * 把 exec 结果归成四级状态之一，不做任何美化。
+   * ok / empty / fail / error / unavailable
+   */
+  function run(cmd) {
+    if (!window.KSU || !window.KSU.isAvailable()) {
+      return Promise.resolve({ state: 'unavailable', text: '', err: '' });
+    }
+    return window.KSU.exec(cmd, {}, 15000).then(function (r) {
+      if (r.errno === 0) {
+        var t = (r.stdout || '').replace(/\s+$/, '');
+        return { state: t === '' ? 'empty' : 'ok', text: t, err: '' };
+      }
+      var stderr = r.stderr || '';
+      if (/no such file|not found/i.test(stderr)) {
+        return { state: 'empty', text: '', err: stderr };
+      }
+      return { state: 'fail', text: '', err: stderr };
+    }, function (e) {
+      return { state: 'error', text: '', err: String(e && e.message ? e.message : e) };
+    });
+  }
+
+  function render(res, emptyText, emptyCls) {
+    if (res.state === 'ok') return esc(res.text);
+    if (res.state === 'empty') return badge(emptyCls || 'idle', emptyText || '未配置');
+    if (res.state === 'fail') return badge('err', '读取失败');
+    if (res.state === 'error') return badge('err', '执行异常');
+    return badge('idle', '未验证');
+  }
+
+  function parseProp(text) {
+    var out = {};
+    text.split('\n').forEach(function (line) {
+      var i = line.indexOf('=');
+      if (i > 0) out[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    });
+    return out;
+  }
+
+  function parseSo(text) {
+    var found = [];
+    var re = /(\S+\.so)/g;
+    var m;
+    while ((m = re.exec(text)) !== null) {
+      if (found.indexOf(m[1]) < 0) found.push(m[1]);
+    }
+    return found;
+  }
+
+  var lastTarget = '';
+
+  function loadOverview() {
+    var cmds = {
+      prop: 'cat ' + MODDIR + '/module.prop',
+      libs: 'ls -l ' + MODDIR + '/zygisk',
+      abi: 'getprop ro.product.cpu.abi',
+      abilist: 'getprop ro.product.cpu.abilist',
+      rel: 'getprop ro.build.version.release',
+      sdk: 'getprop ro.build.version.sdk',
+      kernel: 'uname -r',
+      ksu: 'ls -d /data/adb/ksu',
+      magisk: 'ls -d /data/adb/magisk'
+    };
+    var keys = Object.keys(cmds);
+    return Promise.all(keys.map(function (k) { return run(cmds[k]); })).then(function (list) {
+      var r = {};
+      keys.forEach(function (k, i) { r[k] = list[i]; });
+
+      var prop = r.prop.state === 'ok' ? parseProp(r.prop.text) : {};
+      var abi = r.abi.state === 'ok' ? r.abi.text : '';
+      var abilist = r.abilist.state === 'ok' ? r.abilist.text : '';
+      var libs = r.libs.state === 'ok' ? parseSo(r.libs.text) : [];
+
+      var root = '未知';
+      var rootCls = 'warn';
+      if (r.ksu.state === 'ok' && r.magisk.state === 'ok') { root = 'KernelSU + Magisk'; rootCls = 'ok'; }
+      else if (r.ksu.state === 'ok') { root = 'KernelSU'; rootCls = 'ok'; }
+      else if (r.magisk.state === 'ok') { root = 'Magisk'; rootCls = 'ok'; }
+
+      var matchCls = 'idle';
+      var matchTxt = '未验证';
+      if (libs.length && (abi || abilist)) {
+        var pool = (abi + ',' + abilist);
+        var hit = libs.filter(function (so) { return pool.indexOf(so.replace('.so', '')) >= 0; });
+        if (hit.length) { matchCls = 'ok'; matchTxt = '匹配 · ' + hit.join(' / '); }
+        else { matchCls = 'err'; matchTxt = '不匹配'; }
+      }
+
+      var rows = [
+        ['模块 ID', esc(prop.id || 'zygisk-ai-runtime')],
+        ['名称', esc(prop.name || '未验证')],
+        ['版本', r.prop.state === 'ok' ? esc(prop.version || '未记录') : render(r.prop, '未验证')],
+        ['模块目录', '<span style="font-size:12px">' + esc(MODDIR) + '</span>'],
+        ['已装产物', libs.length ? esc(libs.join(' / ')) : render(r.libs, '无产物')],
+        ['设备 ABI', abi ? esc(abi) : render(r.abi, '未验证')],
+        ['产物 ABI 匹配', badge(matchCls, matchTxt)],
+        ['Android', r.rel.state === 'ok' ? esc(r.rel.text + (r.sdk.state === 'ok' ? ' (API ' + r.sdk.text + ')' : '')) : render(r.rel, '未验证')],
+        ['内核', r.kernel.state === 'ok' ? esc(r.kernel.text) : render(r.kernel, '未验证')],
+        ['root 方案', badge(rootCls, root)]
+      ];
+
+      $('overview').innerHTML = rows.map(function (x) {
+        return '<div class="row"><span class="k">' + x[0] + '</span><span class="v">' + x[1] + '</span></div>';
+      }).join('');
+
+      showEnvBanner(root);
+    });
+  }
+
+  function showEnvBanner(root) {
+    var el = $('envBanner');
+    if (!window.KSU || !window.KSU.isAvailable()) {
+      el.className = 'banner banner-warn';
+      el.innerHTML = '未检测到 KernelSU 桥接环境，页面无法读取任何真实数据，下方全部显示「未验证」。'
+        + '请在 KSU 管理器中通过模块的「打开」按钮进入本页。';
+      return;
+    }
+    if (root === 'Magisk') {
+      el.className = 'banner banner-warn';
+      el.innerHTML = '当前 root 方案检测为 Magisk —— Magisk 没有内嵌 WebUI 机制，此页面不会被管理器列出。'
+        + '模块本身不受影响，注入照常工作。';
+      return;
+    }
+    el.className = 'banner hidden';
+  }
+
+  function loadTarget() {
+    return run('cat ' + TARGET).then(function (res) {
+      lastTarget = res.state === 'ok' ? res.text.split('\n')[0].trim() : '';
+      var el = $('targetNow');
+      if (res.state === 'ok' && lastTarget) {
+        el.innerHTML = esc(lastTarget);
+      } else if (res.state === 'empty') {
+        el.innerHTML = badge('idle', '未配置 · 不注入任何 App');
+      } else if (res.state === 'fail') {
+        el.innerHTML = badge('err', '读取失败');
+      } else if (res.state === 'error') {
+        el.innerHTML = badge('err', '执行异常');
+      } else {
+        el.innerHTML = badge('idle', '未验证');
+      }
+      $('pkgInput').value = lastTarget;
+    });
+  }
+
+  function loadLog() {
+    $('logView').textContent = '读取中…';
+    $('injectVerdict').innerHTML = badge('idle', '读取中');
+    return run('logcat -d -t 600 -v brief').then(function (res) {
+      var lines = res.state === 'ok'
+        ? res.text.split('\n').filter(function (l) { return l.indexOf('ZAI:') >= 0; })
+        : [];
+      if (res.state !== 'ok') {
+        $('logView').textContent = '无法读取：' + (res.state === 'unavailable' ? '无 KSU 桥接' : (res.err || res.state));
+        $('injectVerdict').innerHTML = badge('idle', '未验证');
+        return;
+      }
+      $('logView').textContent = lines.length ? lines.join('\n') : '（logcat 中没有 ZAI 相关记录）';
+      var hasBoot = lines.some(function (l) { return l.indexOf('ZAI:Bootstrap') >= 0; });
+      $('injectVerdict').innerHTML = hasBoot
+        ? badge('ok', '已验证 · 日志中有 specialize 记录')
+        : badge('warn', '未发现记录 · 目标 App 可能尚未重启');
+    });
+  }
+
+  function validatePkg(p) {
+    p = (p || '').trim();
+    if (!p) return '包名不能为空';
+    if (p.length > 255) return '包名过长';
+    if (!PKG_RE.test(p)) return '包名含非法字符（只允许字母、数字、下划线、点）';
+    if (p.indexOf('.') < 0) return '包名必须包含至少一个点';
+    return null;
+  }
+
+  function save() {
+    var pkg = $('pkgInput').value.trim();
+    var err = validatePkg(pkg);
+    if (err) {
+      $('saveHint').innerHTML = '<span style="color:var(--err)">' + err + '</span>';
+      if (window.KSU) window.KSU.toast(err);
+      return;
+    }
+    var btn = $('btnSave');
+    btn.disabled = true;
+    // 包名已过白名单，只含 [A-Za-z0-9_.]，拼进 sh -c 无注入风险。
+    var cmd = "sh -c \"printf '%s\\n' '" + pkg + "' > " + TARGET + ".tmp"
+      + " && mv " + TARGET + ".tmp " + TARGET
+      + " && chmod 0644 " + TARGET + "\"";
+    window.KSU.exec(cmd, {}, 15000).then(function (r) {
+      btn.disabled = false;
+      if (r.errno === 0) {
+        window.KSU.toast('已保存，重启目标 App 生效');
+        loadTarget();
+      } else {
+        $('saveHint').innerHTML = '<span style="color:var(--err)">写入失败：' + esc(r.stderr || ('errno=' + r.errno)) + '</span>';
+      }
+    }, function (e) {
+      btn.disabled = false;
+      $('saveHint').innerHTML = '<span style="color:var(--err)">写入异常：' + esc(String(e)) + '</span>';
+    });
+  }
+
+  function clearTarget() {
+    var btn = $('btnClear');
+    btn.disabled = true;
+    window.KSU.exec('rm -f ' + TARGET, {}, 15000).then(function () {
+      btn.disabled = false;
+      window.KSU.toast('已清空');
+      loadTarget();
+    }, function (e) {
+      btn.disabled = false;
+      $('saveHint').innerHTML = '<span style="color:var(--err)">清空异常：' + esc(String(e)) + '</span>';
+    });
+  }
+
+  function loadPkgs() {
+    var btn = $('btnLoadPkgs');
+    btn.disabled = true;
+    btn.textContent = '加载中…';
+    var names = window.KSU.listPackages('all');
+    if (!names.length) names = window.KSU.listPackages();
+    var dl = $('pkgList');
+    if (!names.length) {
+      btn.textContent = '从已装应用选择';
+      btn.disabled = false;
+      $('saveHint').innerHTML = '<span style="color:var(--warn)">未能取得应用列表，请手动输入包名。</span>';
+      return;
+    }
+    var info = window.KSU.getPackagesInfo(names.slice(0, 400));
+    var label = {};
+    info.forEach(function (i) { if (i && i.packageName) label[i.packageName] = i.appLabel || ''; });
+    dl.innerHTML = names.map(function (n) {
+      var lb = label[n] ? '（' + esc(label[n]) + '）' : '';
+      return '<option value="' + esc(n) + '">' + esc(n) + lb + '</option>';
+    }).join('');
+    btn.textContent = '已载入 ' + names.length + ' 个应用';
+    btn.disabled = false;
+  }
+
+  // 设备侧 Runtime 监听端口。页面跑在手机上，只能判这一段；
+  // PC 侧的 MCP Server（60501）在电脑上，手机够不着，不许混为一谈。
+  var IPC_PORT = 60500;
+
+  /**
+   * 解析 /proc/net/tcp（tcp6 同格式）。
+   * local_address 形如 0100007F:EC54 —— 冒号后是端口的十六进制（0xEC54 = 60500）；
+   * st 列：0A = LISTEN，01 = ESTABLISHED。
+   */
+  function parseNetTcp(text, port) {
+    var listen = false;
+    var est = 0;
+    (text || '').split('\n').forEach(function (line) {
+      var f = line.trim().split(/\s+/);
+      if (f.length < 4) return;
+      var la = f[1];
+      var st = f[3];
+      var i = la.lastIndexOf(':');
+      if (i < 0) return;
+      if (parseInt(la.slice(i + 1), 16) !== port) return;
+      if (st === '0A') listen = true;
+      else if (st === '01') est += 1;
+    });
+    return { listen: listen, established: est };
+  }
+
+  function loadService() {
+    return run('cat ' + TARGET).then(function (t) {
+      var pkg = t.state === 'ok' ? t.text.split('\n')[0].trim() : '';
+      var hasPkg = !!pkg && PKG_RE.test(pkg) && pkg.indexOf('.') > 0;
+
+      return Promise.all([
+        run('cat /proc/net/tcp'),
+        run('cat /proc/net/tcp6'),
+        hasPkg ? run('pidof ' + pkg) : Promise.resolve(null)
+      ]).then(function (r) {
+        var bar = $('svcBar');
+        var txt = $('svcText');
+        var hint = $('svcHint');
+
+        if (r[0].state === 'unavailable' || r[0].state === 'error') {
+          bar.className = 'svcbar s-off';
+          txt.textContent = '未验证';
+          hint.textContent = '读不到 /proc/net/tcp，无法判定服务状态。';
+          $('svcListen').innerHTML = badge('idle', '未验证');
+          $('svcClients').innerHTML = badge('idle', '未验证');
+          $('svcProc').innerHTML = badge('idle', '未验证');
+          return;
+        }
+
+        var a = parseNetTcp(r[0].text, IPC_PORT);
+        var b = parseNetTcp(r[1].text, IPC_PORT);
+        var listen = a.listen || b.listen;
+        var est = a.established + b.established;
+
+        var running = false;
+        var procTxt;
+        if (!hasPkg) {
+          procTxt = badge('idle', '未配置目标');
+        } else if (r[2] === null) {
+          procTxt = badge('idle', '未验证');
+        } else if (r[2].state === 'ok' && r[2].text.trim() !== '') {
+          running = true;
+          procTxt = esc(pkg) + ' · pid ' + esc(r[2].text.trim().split(/\s+/)[0]);
+        } else {
+          procTxt = esc(pkg) + ' · ' + badge('idle', '未运行');
+        }
+
+        $('svcListen').innerHTML = listen ? badge('ok', '监听中') : badge('idle', '未监听');
+        $('svcClients').innerHTML = est
+          ? badge('ok', est + ' 个已接入')
+          : badge('idle', '无');
+        $('svcProc').innerHTML = procTxt;
+
+        if (listen && est) {
+          bar.className = 'svcbar s-ok';
+          txt.textContent = '已连接';
+          hint.textContent = 'Runtime 正在监听 ' + IPC_PORT + '，且有客户端已接入。';
+        } else if (listen) {
+          bar.className = 'svcbar s-wait';
+          txt.textContent = '等待连接';
+          hint.innerHTML = 'Runtime 已监听 ' + IPC_PORT + '，等待 PC 接入。PC 侧需先执行 '
+            + 'adb forward tcp:' + IPC_PORT + ' tcp:' + IPC_PORT + '，再启动 MCP Server。';
+        } else if (running) {
+          bar.className = 'svcbar s-boot';
+          txt.textContent = '启动中';
+          hint.textContent = '目标进程已运行，Runtime 尚未监听（正在 specialize），稍候再刷新。';
+        } else {
+          bar.className = 'svcbar s-off';
+          txt.textContent = '未连接';
+          hint.textContent = IPC_PORT + ' 未监听。先配好注入目标，再启动目标 App —— '
+            + 'Runtime 是在进程 specialize 时拉起的。';
+        }
+      });
+    });
+  }
+
+  $('btnSave').onclick = save;
+  $('btnClear').onclick = clearTarget;
+  $('btnLoadPkgs').onclick = loadPkgs;
+  $('btnRefreshLog').onclick = loadLog;
+
+  var autoTimer = null;
+  $('btnRefreshSvc').onclick = function () { loadService(); };
+  $('btnAutoSvc').onclick = function () {
+    var btn = $('btnAutoSvc');
+    if (autoTimer !== null) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+      btn.textContent = '自动刷新：关';
+    } else {
+      autoTimer = setInterval(loadService, 5000);
+      btn.textContent = '自动刷新：开（5s）';
+      loadService();
+    }
+  };
+
+  loadService();
+  loadOverview();
+  loadTarget();
+  loadLog();
+})();
+</script>
+</body>
+</html>

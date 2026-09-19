@@ -37,7 +37,8 @@ docs/
 │
 ├── 10-施工指导/                  P4–P5 · 执行规约
 │   ├── ZygiskAIRuntime_专业开发技术指导总文档_v1.0.md
-│   └── ZygiskAIRuntime_AI施工手册_v2.0.md
+│   ├── ZygiskAIRuntime_AI施工手册_v2.0.md
+│   └── ZygiskAIRuntime_模块WebUI设计_v1.0.md
 │
 ├── 20-构建与审计/                P-1 阶段交付物（已完成 2026-09-19）
 │   ├── README.md                 交付物清单与 P-1a/P-1b 拆分说明
@@ -117,8 +118,8 @@ grep -rn "docs/build/\|docs/archive/\|docs/DEVELOPMENT_GUIDE\|\./STRUCTURE\.md" 
 | 3 | **P-1 阻塞规则与本机环境冲突** | 施工手册 P-1.6 判定"无 NDK / CMake → P-1 不完成"，与"本机不装 NDK / CMake"的既定约定相撞。建议拆分为 **P-1a**（PC 侧可判定：目录 / 供应链 / License 审计，本机可完成）与 **P-1b**（Android 构建项，标记 BLOCKED 挂起） |
 | 4 | **P4 与 P5 内容重叠约六成** | 两份新文档都定义了施工路线 / FAST-JOB / Write Guard / 双层验收。建议收敛为一份路线权威 + 一份增量规约 |
 | 5 | **PC 侧包名 `mcp/` 与 MCP SDK 顶层包硬冲突** | ✅ **已修**：统一改为 `ai_analyzer/`（与 `libai_analyzer.so` 等产物名一致）。总基线 §17.0/§19.1 与 STRUCTURE.md 已同步 |
-| 6 | **传输层需支持 TCP 回环** | 总基线 §10.1 冻结 UDS，但 Windows 的 CPython 可能无 `socket.AF_UNIX`（本机 3.13.14 即如此），且真机部署本就要经 `adb forward`。已实现 UDS + TCP 双端点，帧与握手完全一致。**建议正式补进基线 §10.1** |
-| 7 | **IPC 端点（端口 / UDS 路径）协议里没定义** | 2026-09-19 准备实现 Android 侧 IPC 客户端时发现：`ai_analyzer/protocol/constants.py` 与总基线**都搜不到端口或 UDS 路径的约定**，只有 `TRANSPORT_UNIX` / `TRANSPORT_TCP` 两个名字。<br>影响：Android 侧无从知道该连哪里，M2 的「注入 → HELLO/READY」无法闭环。<br>**未擅自定端口**（那属于协议变更，按工程纪律 §19.6 须先改文档与黄金样例）。<br>待裁决：① 固定默认端口（如 6000）；② 还是由配置项/环境变量注入；③ 真机走 UDS 时路径怎么约定（建议 `/data/local/tmp/zai-runtime/<pkg>.sock`，但需 root 侧创建）。 |
+| 6 | **传输层需支持 TCP 回环** | ✅ **已解决（2026-09-19）**：已正式补进基线新增的 **§10.1.1 默认端点**，含 UDS / TCP 对照表与真机 `adb forward` 用法。UDS 仍为冻结方案，TCP 定为等价回退 |
+| 7 | **IPC 端点默认值未裁定** | ⚠️ **原记录表述不准，已更正**：`constants.py` 里**早就有** `DEFAULT_SOCKET_PATH`（UDS）与 `DEFAULT_TCP_ENDPOINT`（原 `tcp:127.0.0.1:27901`），并非「搜不到端口或路径」；真正的问题是这些值**从未被裁定**，Android 侧不敢直接依赖。<br>**✅ 已裁定（2026-09-19，项目所有者）：TCP 端点 = `127.0.0.1:60500`**。已同步三处：Python 常量源（新增 `DEFAULT_TCP_HOST` / `DEFAULT_TCP_PORT`）、native 镜像 `ZAI_DEFAULT_TCP_*`、交叉校验表 `SCALAR_MAP`；原 27901 全工程替换，测试 202 项全绿。<br>绑定地址固定回环，**不提供 host 覆盖项**（Runtime 带 root，监听 `0.0.0.0` 等于把内存读写开放给同网段任何人）。<br>**仍未裁定**：UDS 路径是沿用现默认值 `/data/local/tmp/ai-analyzer/analyzer.sock`，还是按包名隔离（如 `/data/local/tmp/zai-runtime/<pkg>.sock`，需 root 侧创建）。 |
 | 8 | **HELLO 用 `protocol`、其它消息用 `version`** | 同名字段两种写法（`protocol` vs `version`），语义相同。实现已按文档原样保留，并提供 `protocol_version_of()` 归一化读取。messages.py 顶部已记录。**是否统一需先改文档与黄金样例** |
 
 ---
