@@ -17,10 +17,16 @@
 # --------------------------------------------------------------------------
 # 1. 构建产物
 # --------------------------------------------------------------------------
-build/
+# 只忽略仓库根的 build/（目前没有，防将来），用 / 前缀锚定，避免误伤子目录
+/build/
+
+# 工程构建目录：忽略内容，但**目录本身**要反选出来，
+# 否则 git 根本不进入它，里面的 ! 反选一律失效
+# （踩过：只写 !build/config/** 结果 toolchain.env 被漏掉）
 ZygiskAIRuntime/build/**
-# 但 build/config 与 build/scripts 是**手写**的配置与脚本，必须入库
+!ZygiskAIRuntime/build/config/
 !ZygiskAIRuntime/build/config/**
+!ZygiskAIRuntime/build/scripts/
 !ZygiskAIRuntime/build/scripts/**
 # build/generated 是 gen_gum_include_dirs.py 自动生成的，不入库
 ZygiskAIRuntime/build/generated/

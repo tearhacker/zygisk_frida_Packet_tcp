@@ -1,0 +1,8 @@
+[wrap-git]
+url = https://github.com/frida/quickjs.git
+revision = fd4842d54368a52d44dc3913df291ea82ca6174f
+depth = 1
+
+[provide]
+dependency_names = quickjs
+

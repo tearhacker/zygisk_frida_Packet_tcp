@@ -1,0 +1,46 @@
+Zygisk AI Runtime（泪心独立研发：APP 逆向 / 封包 / 动态内存调试工具）
+Copyright 2026 泪心
+
+本项目自身源码采用 Apache License 2.0（见 LICENSE）。
+
+--------------------------------------------------------------------------
+第三方组件声明
+--------------------------------------------------------------------------
+
+本项目包含 / 依赖以下第三方软件，它们各自使用**独立于本项目**的许可证。
+详细核对见 docs/00-权威基线/LICENSES.md。
+
+1) Frida-Gum 17.18.0 —— wxWindows Library Licence 3.1
+   来源：https://github.com/frida/frida-gum
+   以静态库形式链接进 libai_analyzer.so（该许可证允许静态链接）。
+
+2) LSPlant —— LGPL-3.0
+   来源：https://github.com/LSPosed/LSPlant
+   ⚠️ 本工程**强制以共享库（liblsplant.so）形式动态链接**，
+      以满足 LGPL-3.0「允许用户替换并重链接」的要求。
+      分发二进制时须提供 liblsplant.so 及其对应源码获取方式。
+
+3) Zygisk API（zygisk.hpp）—— 0BSD
+   来源：Magisk / topjohnwu，Zygisk Module API v5
+   头文件按原样随附，标注 "DO NOT MODIFY"，未做修改。
+
+4) glib / capstone / json-glib / libffi / libunwind / libdwarf / xz / tinycc
+   由 Frida-Gum 的 meson subprojects 引入，许可证各异
+   （多数为 LGPL-2.1+ / BSD / MIT 系），均随 Frida-Gum 构建。
+
+5) 外置工具（不编译进本工程，仅进程外协作）
+   mitmproxy(MIT) · PCAPdroid(GPL-3.0，禁止链接) · NetBare(MIT) ·
+   JADX(Apache-2.0) · Apktool(Apache-2.0) · Rizin(GPL-3.0) · r2frida(MIT)
+
+--------------------------------------------------------------------------
+关于许可证的常见误解（重要）
+--------------------------------------------------------------------------
+
+Apache License 2.0 是**宽松许可证（permissive）**：
+  允许任何人自由使用、修改、再发布，也包括**闭源商用**，
+  只需保留版权声明与本许可证，并标注修改过的文件。
+
+它**不要求**「修改后必须开源」。
+若你需要「衍生作品必须同样开源」的约束，应选择 GPL-3.0 / LGPL-3.0
+这类 copyleft 许可证 —— 那是另一种授权策略，与本文件当前采用的
+Apache 2.0 不等价。

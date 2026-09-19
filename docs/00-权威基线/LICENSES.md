@@ -114,7 +114,7 @@ Zygisk API headers   0BSD                             topjohnwu
 |---|---|---|
 | MCP Specification | 处于 MIT → Apache-2.0 过渡期，同一仓内文件许可可能不同 | 仅作规范参考，不复制其文档进本工程；引用处标注来源与许可 |
 | frida-gum `bindings/`（GumJS） | 未在 COPYING 外单独声明，主 COPYING 覆盖全仓 | 若启用 GumJS，需再确认一次；当前架构只用 Gum C API |
-| 本项目自身许可 | **尚未声明** | 需明确（建议：Android 侧与 Host 侧分别定，或统一 Apache-2.0） |
+| 本项目自身许可 | ✅ **Apache-2.0**（2026-09-19 已定） | 仓库根 `LICENSE` + `NOTICE` 已建；详见 §7 |
 
 ---
 
@@ -127,3 +127,54 @@ Zygisk API headers   0BSD                             topjohnwu
   1. LSPlant 必须 `SHARED` 库，不得静态嵌入；
   2. PCAPdroid / Rizin 不得链接或 copy 源码；
   3. `external/` 中 GPL 项目不搬进 `ZygiskAIRuntime/` 工程目录。
+
+---
+
+## 7. 项目自身许可：Apache-2.0（2026-09-19 已定）
+
+| 项 | 内容 |
+|---|---|
+| 许可证 | **Apache License 2.0** |
+| 版权 | Copyright 2026 泪心 |
+| 许可证文件 | 仓库根 `LICENSE` |
+| 第三方声明 | 仓库根 `NOTICE`（**分发二进制时必须随附**） |
+
+### 7.1 与现有依赖的兼容性
+
+| 依赖 | 许可证 | 判断 |
+|---|---|---|
+| Frida-Gum | wxWindows Library Licence 3.1 | ✅ 明确允许静态链接；仅对 **Gum 自身**的修改有开源要求 |
+| **LSPlant** | **LGPL-3.0** | ✅ **有前提**：必须保持动态链接，以满足"用户可替换/可重链接"义务 |
+| Zygisk API | 0BSD | ✅ 实质等同 public domain，无义务 |
+
+> 🔴 **关键前提，不要破坏**：
+> 若将来把 LSPlant 改成**静态嵌入**，Apache-2.0 的主项目将无法满足 LGPL-3.0 义务，
+> 届时整个工程可能被迫整体转为 LGPL-3.0。
+> `native/CMakeLists.txt` 里的 `LSPLANT_BUILD_SHARED = ON` 就是这条约束的落点，
+> **不要改成 static**。（当前因 NDK clang 18 不兼容而临时 `ZAI_ENABLE_LSPLANT=OFF`，
+> 属"未集成"而非"静态嵌入"，不触发该风险；恢复时仍须保持 SHARED。）
+
+### 7.2 Apache-2.0 **不提供**「魔改必须开源」的约束
+
+Apache-2.0 是**宽松许可证（permissive）**：
+
+- ✅ 允许任何人自由使用、修改、再发布，**包括闭源商用**
+- ✅ 允许 sublicense
+- ⚠️ 义务只有：保留版权声明与许可证、标注改过的文件、随附 NOTICE
+- ❌ **不要求**衍生作品开源
+
+也就是说，别人拿本项目代码改成商业闭源产品并发布，是**被允许的**。
+
+若需要「修改后必须同样开源」的 copyleft 约束，应改用 **GPL-3.0**（强）或
+**LGPL-3.0**（弱，库级）。这属于**许可证变更**，需同步更新：
+
+```text
+LICENSE（根目录）      → 换成对应许可证全文
+NOTICE（根目录）       → 更新声明
+本文件 §7              → 更新本节
+ZygiskAIRuntime/README.md「许可」章节 → 同步
+```
+
+另注：本项目当前为**单方版权**（Copyright 2026 泪心），无外部 Contributor，
+因此更换许可证不存在需征得他人同意的障碍；一旦接受外部贡献后再更换，
+需按贡献者协议处理。

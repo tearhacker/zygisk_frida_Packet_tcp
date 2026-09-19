@@ -1,5 +1,7 @@
 # Zygisk AI Runtime
 
+**泪心独立研发 —— APP 逆向 / 封包 / 动态内存调试工具。**
+
 Android 侧动态分析 Runtime。核心只围绕 **Zygisk + Frida-Gum + LSPlant** 构建，其余工具全部外置。
 
 > 设计依据：`../docs/90-历史归档/真正的工作.txt.md`（v1.0 源码供应链与工程目录）。
@@ -244,4 +246,31 @@ MCP Server（Core 25 + Expert 10 工具，能力门禁自动摘除）。
 
 ## 许可
 
-本项目自身许可 **待定**；第三方许可清单与三条硬约束见 `../docs/00-权威基线/LICENSES.md`。
+**本项目自身源码：Apache License 2.0**（见仓库根 [`LICENSE`](../LICENSE)）。
+
+> ⚠️ 关于 Apache 2.0 的一个常见误解，先说清楚：
+> 它是**宽松许可证（permissive）**，允许任何人自由使用、修改、再发布，
+> **也包括闭源商用** —— 只需保留版权声明与许可证、并标注改过的文件。
+> 它**不要求**「魔改后必须开源」。
+> 若你要的是"衍生作品必须同样开源"，那属于 copyleft（GPL / LGPL 系），
+> 与 Apache 2.0 不是一回事，需另行更换许可证。
+
+分发二进制时必须随附第三方声明，见仓库根 [`NOTICE`](../NOTICE)。主要依赖：
+
+| 组件 | 许可证 | 链接方式 |
+|---|---|---|
+| Frida-Gum | wxWindows Library Licence 3.1 | 静态链接（该证允许） |
+| **LSPlant** | **LGPL-3.0** | **强制动态链接**（须允许用户替换） |
+| Zygisk API | 0BSD | 仅头文件 |
+
+完整核对与三条硬约束见 [`../docs/00-权威基线/LICENSES.md`](../docs/00-权威基线/LICENSES.md)。
+
+## 联系与社区
+
+```text
+开发者    泪心
+QQ        2254013571
+Q群       435539500
+Discord   https://discord.gg/yghYHcEdD
+官网      http://teargamestorem.top/
+```
