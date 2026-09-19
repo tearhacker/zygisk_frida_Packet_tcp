@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "type": "ERROR",
+  "request_id": "req_0000000000b4",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000300,
+  "error": {
+    "code": "E_SESSION_STALE",
+    "layer": "execution",
+    "message": "Session 已失效（重连后旧 Session 不恢复，必须重建）",
+    "context": {
+      "got": "sess_0000000000a0",
+      "current": "sess_0000000000a1"
+    },
+    "retryable": false,
+    "next_step": "重新 session.list 获取新 Session"
+  }
+}

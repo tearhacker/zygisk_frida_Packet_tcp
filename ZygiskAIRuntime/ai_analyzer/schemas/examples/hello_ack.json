@@ -1,0 +1,14 @@
+{
+  "type": "HELLO_ACK",
+  "protocol": "1.0",
+  "server": "ai-analyzer",
+  "server_version": "1.0.0",
+  "session_id": "sess_0000000000a1",
+  "capabilities": [
+    "native_hook",
+    "java_hook",
+    "memory_read",
+    "memory_write",
+    "packet_intercept"
+  ]
+}

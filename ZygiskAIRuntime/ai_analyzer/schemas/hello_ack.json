@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/hello_ack.json",
+  "title": "HELLO_ACK",
+  "description": "服务端应答，携带新建的 session_id。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "protocol",
+    "server",
+    "server_version",
+    "session_id",
+    "capabilities"
+  ],
+  "properties": {
+    "type": {
+      "const": "HELLO_ACK"
+    },
+    "protocol": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "server": {
+      "type": "string",
+      "minLength": 1
+    },
+    "server_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^sess_[0-9a-f]{12}$"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/request.json",
+  "title": "REQUEST",
+  "description": "一条命令请求。command 必须是 domain.action 的 snake_case。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "type",
+    "request_id",
+    "session_id",
+    "timestamp",
+    "command",
+    "payload"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "type": {
+      "const": "REQUEST"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^req_[0-9a-f]{12}$"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^sess_[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "毫秒时间戳"
+    },
+    "command": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+      "description": "权威命令清单见 mcp/protocol/commands.py 的 COMMANDS。"
+    },
+    "payload": {
+      "type": "object",
+      "description": "载荷，结构由 command / event_type 决定"
+    }
+  }
+}

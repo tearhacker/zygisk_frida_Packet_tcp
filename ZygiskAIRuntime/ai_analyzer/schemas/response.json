@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/response.json",
+  "title": "RESPONSE",
+  "description": "命令应答。status=ok 只代表调用成功，不代表业务已验证生效；执行型命令必须另带 accepted/executed/verified 三态。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "type",
+    "request_id",
+    "session_id",
+    "timestamp",
+    "status",
+    "code",
+    "payload"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "type": {
+      "const": "RESPONSE"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^req_[0-9a-f]{12}$"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^sess_[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "毫秒时间戳"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "error"
+      ]
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "payload": {
+      "type": "object",
+      "description": "载荷，结构由 command / event_type 决定"
+    }
+  }
+}

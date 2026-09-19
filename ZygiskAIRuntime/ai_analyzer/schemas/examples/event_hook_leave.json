@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "type": "EVENT",
+  "event_id": "evt_0000000000c3",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000500,
+  "pid": 18342,
+  "tid": 18350,
+  "event_type": "HOOK_LEAVE",
+  "source": "runtime",
+  "payload": {
+    "hook_id": "hook_0000000000d1",
+    "return_value": "0x0",
+    "duration_us": 812
+  }
+}

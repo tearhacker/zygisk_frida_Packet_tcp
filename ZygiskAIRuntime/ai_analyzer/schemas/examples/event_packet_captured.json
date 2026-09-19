@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "type": "EVENT",
+  "event_id": "evt_0000000000c4",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000500,
+  "pid": 18342,
+  "tid": 18350,
+  "event_type": "PACKET_CAPTURED",
+  "source": "network",
+  "payload": {
+    "packet_id": "pkt_0000000000e1",
+    "direction": "outbound",
+    "protocol": "TCP",
+    "length": 384,
+    "connection_id": "conn_0000000000f1",
+    "artifact_id": null,
+    "sha256": null
+  }
+}

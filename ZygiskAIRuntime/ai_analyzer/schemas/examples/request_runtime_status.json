@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "type": "REQUEST",
+  "request_id": "req_0000000000b1",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000120,
+  "command": "runtime.status",
+  "payload": {}
+}

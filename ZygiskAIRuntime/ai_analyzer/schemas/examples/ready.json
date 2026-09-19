@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "type": "READY",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000000,
+  "state": "RUNNING",
+  "capabilities": {
+    "runtime": {
+      "native_hook": true,
+      "java_hook": true,
+      "memory_read": true,
+      "memory_write": true,
+      "stacktrace": true
+    },
+    "network": {
+      "capture": true,
+      "http": true,
+      "https_capture": true,
+      "https_decrypt": false,
+      "packet_intercept": true
+    }
+  }
+}

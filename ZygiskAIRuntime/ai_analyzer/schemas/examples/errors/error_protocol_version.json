@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "type": "ERROR",
+  "request_id": null,
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000300,
+  "error": {
+    "code": "ERROR_PROTOCOL_VERSION",
+    "layer": "protocol",
+    "message": "协议版本不匹配：服务端 1.0，客户端 '2.0'",
+    "context": {
+      "expected": "1.0",
+      "got": "2.0"
+    },
+    "retryable": false,
+    "next_step": "升级客户端到协议版本 1.0"
+  }
+}

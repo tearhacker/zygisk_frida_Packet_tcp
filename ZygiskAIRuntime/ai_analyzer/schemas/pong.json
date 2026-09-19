@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/pong.json",
+  "title": "PONG",
+  "description": "心跳应答。seq 必须回显对应 PING 的 seq。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "type",
+    "timestamp",
+    "seq"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "type": {
+      "const": "PONG"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "毫秒时间戳"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/hello.json",
+  "title": "HELLO",
+  "description": "客户端首帧。必须先于任何命令发送。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "protocol",
+    "client",
+    "client_version",
+    "capabilities"
+  ],
+  "properties": {
+    "type": {
+      "const": "HELLO"
+    },
+    "protocol": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "client": {
+      "type": "string",
+      "minLength": 1
+    },
+    "client_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  }
+}

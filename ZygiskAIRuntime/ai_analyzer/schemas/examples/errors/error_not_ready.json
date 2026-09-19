@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "type": "ERROR",
+  "request_id": "req_0000000000b3",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000300,
+  "error": {
+    "code": "E_NOT_READY",
+    "layer": "execution",
+    "message": "前置条件未满足：RUNTIME_READY",
+    "context": {
+      "state": "STARTING"
+    },
+    "retryable": true,
+    "next_step": "先完成前置步骤（等待 RUNTIME_READY）"
+  }
+}

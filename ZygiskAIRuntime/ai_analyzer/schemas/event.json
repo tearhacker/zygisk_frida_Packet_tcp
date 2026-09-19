@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/event.json",
+  "title": "EVENT",
+  "description": "统一事件格式。Runtime / Network 事件全部走这条。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "type",
+    "event_id",
+    "session_id",
+    "timestamp",
+    "pid",
+    "tid",
+    "event_type",
+    "source",
+    "payload"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "type": {
+      "const": "EVENT"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^evt_[0-9a-f]{12}$"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^sess_[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "毫秒时间戳"
+    },
+    "pid": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "tid": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "PROCESS_STARTED",
+        "AGENT_CONNECTED",
+        "RUNTIME_READY",
+        "MODULE_LOADED",
+        "THREAD_CREATED",
+        "HOOK_ENTER",
+        "HOOK_LEAVE",
+        "NETWORK_CONNECTED",
+        "HTTP_REQUEST",
+        "HTTP_RESPONSE",
+        "PACKET_CAPTURED",
+        "DEX_LOADED",
+        "CLASS_LOADED",
+        "JNI_CALL",
+        "SO_LOADED",
+        "MEMORY_CHANGED",
+        "WEBSOCKET_FRAME",
+        "HOOK_INSTALLED",
+        "PACKET_MODIFIED",
+        "PACKET_REPLAYED"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "runtime",
+        "network",
+        "session",
+        "system"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "description": "载荷，结构由 command / event_type 决定"
+    }
+  }
+}

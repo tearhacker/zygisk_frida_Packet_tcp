@@ -1,0 +1,117 @@
+# ==========================================================================
+# 本仓库只入库「项目自有源码 + 文档 + 构建脚本」。
+# 一切可再生的东西（构建产物、下载的第三方依赖、本机工具目录）一律不入库。
+#
+# 为什么必须这么写（2026-09-19 实测体积）：
+#   ZygiskAIRuntime/build/        838M   meson builddir / cmake out / 产物 zip
+#   ZygiskAIRuntime/third_party/  738M   其中 subprojects/* 全是拉取的依赖
+#   external/                     274M   外置 10 个参考源码
+#   合计约 1.85G，而项目自有源码只有几 MB。
+#
+# 全部可再生，恢复方式：
+#   external/                     → scripts/fetch_sources.sh
+#   frida-gum subprojects/        → ZygiskAIRuntime/build/scripts/fetch_subproject.py
+#   build/（含产物 zip）          → 测试版.bat / 发布版.bat
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# 1. 构建产物
+# --------------------------------------------------------------------------
+build/
+ZygiskAIRuntime/build/**
+# 但 build/config 与 build/scripts 是**手写**的配置与脚本，必须入库
+!ZygiskAIRuntime/build/config/**
+!ZygiskAIRuntime/build/scripts/**
+# build/generated 是 gen_gum_include_dirs.py 自动生成的，不入库
+ZygiskAIRuntime/build/generated/
+
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.zip
+*.tar
+*.tar.gz
+
+# --------------------------------------------------------------------------
+# 2. 第三方源码：只留「锁定清单」，不留「下载来的实体」
+#
+# frida-gum 自身源码（gum/ libs/ meson.build …）要入库 —— 它是核心第三方源码，
+# 也是 SOURCE_LOCK.md 锁定的对象。
+# 但 subprojects/ 下的目录是 meson 拉来的依赖（几百 MB），
+# 用 fetch_subproject.py 按 .wrap 就能原样恢复，所以只保留 .wrap 文件。
+# --------------------------------------------------------------------------
+ZygiskAIRuntime/third_party/frida-gum/*/subprojects/*/
+!ZygiskAIRuntime/third_party/frida-gum/*/subprojects/*.wrap
+
+ZygiskAIRuntime/third_party/frida-gum/*/build/
+
+# 外置 10 个（jadx / mitmproxy / pcapdroid / mcp sdk …）
+# 不编译进 libai_analyzer.so，纯参考与协作，由 scripts/fetch_sources.sh 恢复
+external/
+
+# --------------------------------------------------------------------------
+# 3. 构建过程残留（我 mv 出来待清理的中间目录）
+# --------------------------------------------------------------------------
+_builddir_old*/
+_builddir_failed/
+_dup/
+_old_*/
+*.unstripped
+
+# --------------------------------------------------------------------------
+# 4. CMake / meson / ninja
+# --------------------------------------------------------------------------
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+.ninja_deps
+.ninja_log
+compile_commands.json
+meson-logs/
+meson-private/
+meson-info/
+
+# --------------------------------------------------------------------------
+# 5. Python（Host 侧 ai_analyzer）
+# --------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# --------------------------------------------------------------------------
+# 6. 本机工具 / 编辑器 / 系统
+# --------------------------------------------------------------------------
+# WorkBuddy 的工作目录（含会话记忆与本机绝对路径），属于工具产物，不入库
+.workbuddy-ai/
+
+.idea/
+.vscode/
+*.iml
+.gradle/
+local.properties
+
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+
+# --------------------------------------------------------------------------
+# 7. 分析产物（按项目约定走 Artifact Channel，不入库）
+# --------------------------------------------------------------------------
+artifacts/
+*.pcap
+*.pcapng
+*.dump
+*.trace
+*.log

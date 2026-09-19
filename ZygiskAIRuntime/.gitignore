@@ -1,0 +1,54 @@
+# 构建产物
+build/out/
+build/*.log
+build/generated/
+*.o
+*.a
+*.so
+# ⚠️ 这里**不要**写 `!module/zygisk/*.so`。
+# module/zygisk/<abi>.so 是构建产物（由 build-native.sh 从 build/out 拷来），可再生。
+# 而且本文件比仓库根的 .gitignore **更深、优先级更高**，
+# 一旦反选就会把 13MB 的 so 重新带进仓库（根规则拦不住）。
+*.unstripped
+
+# CMake / meson
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+.ninja_deps
+.ninja_log
+
+# Frida-Gum 构建目录（体积巨大，由 build-gum.sh 生成）
+third_party/frida-gum/*/build/
+third_party/frida-gum/*/subprojects/packagecache/
+
+# subprojects 下的**目录**是拉取来的依赖（几百 MB），不入库；
+# 但 .wrap 文件是依赖锁定清单，必须留 —— fetch_subproject.py 靠它恢复。
+third_party/frida-gum/*/subprojects/*/
+!third_party/frida-gum/*/subprojects/*.wrap
+
+# 构建失败/重跑时 mv 出来的残留目录
+_builddir_old*/
+_builddir_failed/
+_old_*/
+_dup/
+
+# 本地环境
+local.properties
+.gradle/
+.idea/
+.vscode/
+
+# 产物（走 Artifact Channel，不入库）
+artifacts/
+*.pcap
+*.dump
+*.trace
+
+# --- Python（Host 侧 ai_analyzer）---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/

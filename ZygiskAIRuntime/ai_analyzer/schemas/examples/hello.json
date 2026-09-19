@@ -1,0 +1,12 @@
+{
+  "type": "HELLO",
+  "protocol": "1.0",
+  "client": "mcp-server",
+  "client_version": "1.0.0",
+  "capabilities": [
+    "runtime",
+    "memory",
+    "network",
+    "packet"
+  ]
+}

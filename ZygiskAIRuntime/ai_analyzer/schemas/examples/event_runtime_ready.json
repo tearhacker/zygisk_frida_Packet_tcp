@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "type": "EVENT",
+  "event_id": "evt_0000000000c1",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000500,
+  "pid": 18342,
+  "tid": 18342,
+  "event_type": "RUNTIME_READY",
+  "source": "runtime",
+  "payload": {
+    "package": "com.example.target",
+    "abi": "arm64-v8a",
+    "sdk": 34
+  }
+}

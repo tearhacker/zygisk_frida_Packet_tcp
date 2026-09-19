@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/ready.json",
+  "title": "READY",
+  "description": "握手完成，可以下发命令。版本不匹配时禁止发出本条。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "type",
+    "session_id",
+    "timestamp",
+    "state",
+    "capabilities"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "type": {
+      "const": "READY"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^sess_[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "毫秒时间戳"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "STARTING",
+        "RUNTIME_READY",
+        "NETWORK_READY",
+        "RUNNING",
+        "PAUSED",
+        "STOPPING",
+        "CLOSED",
+        "DEGRADED",
+        "FAILED",
+        "ERROR"
+      ]
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "能力声明。不可用必须上报 false，由 Surface Manager 摘除工具，而不是等 AI 调了才报错。",
+      "additionalProperties": false,
+      "required": [
+        "runtime",
+        "network"
+      ],
+      "properties": {
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "native_hook",
+            "java_hook",
+            "memory_read",
+            "memory_write",
+            "stacktrace"
+          ],
+          "properties": {
+            "native_hook": {
+              "type": "boolean"
+            },
+            "java_hook": {
+              "type": "boolean"
+            },
+            "memory_read": {
+              "type": "boolean"
+            },
+            "memory_write": {
+              "type": "boolean"
+            },
+            "stacktrace": {
+              "type": "boolean"
+            }
+          }
+        },
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "capture",
+            "http",
+            "https_capture",
+            "https_decrypt",
+            "packet_intercept"
+          ],
+          "properties": {
+            "capture": {
+              "type": "boolean"
+            },
+            "http": {
+              "type": "boolean"
+            },
+            "https_capture": {
+              "type": "boolean"
+            },
+            "https_decrypt": {
+              "type": "boolean"
+            },
+            "packet_intercept": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

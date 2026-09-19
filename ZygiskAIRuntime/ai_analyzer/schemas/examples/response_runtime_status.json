@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "type": "RESPONSE",
+  "request_id": "req_0000000000b1",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000130,
+  "status": "ok",
+  "code": "OK",
+  "payload": {
+    "state": "RUNNING",
+    "pid": 18342,
+    "package": "com.example.target",
+    "abi": "arm64-v8a",
+    "sdk": 34,
+    "uptime_ms": 4210,
+    "runtime_ready": true,
+    "network_ready": true
+  }
+}

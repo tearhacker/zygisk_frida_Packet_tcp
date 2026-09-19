@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "type": "RESPONSE",
+  "request_id": "req_0000000000b2",
+  "session_id": "sess_0000000000a1",
+  "timestamp": 1789788000140,
+  "status": "ok",
+  "code": "OK",
+  "payload": {
+    "total": 1,
+    "truncated": false,
+    "processes": [
+      {
+        "pid": 18342,
+        "package": "com.example.target",
+        "uid": 10234,
+        "process_name": "com.example.target",
+        "is_target": true
+      }
+    ]
+  }
+}

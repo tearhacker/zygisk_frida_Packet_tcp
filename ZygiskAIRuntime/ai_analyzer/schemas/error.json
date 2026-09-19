@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-analyzer.local/schemas/error.json",
+  "title": "ERROR",
+  "description": "错误消息。协议层错误与执行层失败必须分开，混为一谈会让 AI 无法自我纠错。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "type",
+    "request_id",
+    "session_id",
+    "timestamp",
+    "error"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "协议版本"
+    },
+    "type": {
+      "const": "ERROR"
+    },
+    "request_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^req_[0-9a-f]{12}$"
+    },
+    "session_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sess_[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "毫秒时间戳"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "layer",
+        "message",
+        "context",
+        "retryable",
+        "next_step"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "ERROR_PROTOCOL_VERSION",
+            "E_BAD_ARGS",
+            "E_UNKNOWN_CMD",
+            "E_MALFORMED_FRAME",
+            "E_NOT_READY",
+            "E_SESSION_STALE",
+            "E_READ_FAILED",
+            "E_WRITE_FAILED",
+            "E_MAP_STALE",
+            "E_TIMEOUT",
+            "E_CANCELLED",
+            "E_NOT_FOUND",
+            "E_PERMISSION_DENIED",
+            "E_INTERNAL"
+          ]
+        },
+        "layer": {
+          "type": "string",
+          "enum": [
+            "protocol",
+            "execution"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context": {
+          "type": "object"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "next_step": {
+          "type": "string",
+          "minLength": 1,
+          "description": "AI 应做什么。必须可行动。"
+        }
+      }
+    }
+  }
+}
