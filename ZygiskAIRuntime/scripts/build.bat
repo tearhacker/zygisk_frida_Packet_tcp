@@ -450,7 +450,7 @@ if not exist "%MODULE_SO%" (
     echo ERROR: %MODULE_SO% missing - run "scripts\build.bat native" first
     exit /b 1
 )
-set "ZIP=%ROOT%\build\out\zygisk-ai-runtime.zip"
+set "ZIP=%ROOT%\build\out\zygisk-packettool-tearhacker.zip"
 if exist "%ZIP%" del /q "%ZIP%"
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Compress-Archive -Path '%ROOT%\module\*' -DestinationPath '%ZIP%' -Force"

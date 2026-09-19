@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
     mode, abi = args.mode, args.abi
     debug = mode == "debug"
     suffix = "-debug" if debug else ""
-    zip_name = f"zygisk-ai-runtime{suffix}.zip"
+    zip_name = f"zygisk-packettool-tearhacker{suffix}.zip"
 
     tc = load_toolchain_env()
     ndk = tc.get("ANDROID_NDK_HOME", "")

@@ -7,7 +7,7 @@ rem ============================================================
 rem  Zygisk AI Runtime —— 发布版构建 (release)
 rem
 rem  特点：Release 编译、NDEBUG（断言关闭）、strip 调试信息
-rem        产物：build\out\zygisk-ai-runtime.zip
+rem        产物：build\out\zygisk-packettool-tearhacker.zip
 rem
 rem  strip 后会校验 zygisk_module_entry 是否仍在；万一丢了会自动
 rem  回退到未 strip 版本（副本留为 *.so.unstripped，仅排查用，
@@ -22,7 +22,7 @@ if not exist "%PY%" set "PY=python"
 
 echo ============================================================
 echo   Zygisk AI Runtime  -  发布版 (release)
-echo   产物: build\out\zygisk-ai-runtime.zip
+echo   产物: build\out\zygisk-packettool-tearhacker.zip
 echo ============================================================
 echo.
 
@@ -36,7 +36,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [完成] 发布版 zip 已生成: build\out\zygisk-ai-runtime.zip
+echo [完成] 发布版 zip 已生成: build\out\zygisk-packettool-tearhacker.zip
 echo 刷机: Magisk App -^> 模块 -^> 从本地安装 -^> 选该 zip -^> 重启
 echo.
 pause

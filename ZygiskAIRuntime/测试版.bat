@@ -7,7 +7,7 @@ rem ============================================================
 rem  Zygisk AI Runtime —— 测试版构建 (debug)
 rem
 rem  特点：Debug 编译、断言开启、保留调试符号、不 strip
-rem        产物：build\out\zygisk-ai-runtime-debug.zip
+rem        产物：build\out\zygisk-packettool-tearhacker-debug.zip
 rem
 rem  用于手机联调：日志更全、崩溃更好定位，但体积大、运行慢。
 rem  要正式出包请改用「发布版.bat」。
@@ -22,7 +22,7 @@ if not exist "%PY%" set "PY=python"
 
 echo ============================================================
 echo   Zygisk AI Runtime  -  测试版 (debug)
-echo   产物: build\out\zygisk-ai-runtime-debug.zip
+echo   产物: build\out\zygisk-packettool-tearhacker-debug.zip
 echo ============================================================
 echo.
 
@@ -36,7 +36,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [完成] 测试版 zip 已生成: build\out\zygisk-ai-runtime-debug.zip
+echo [完成] 测试版 zip 已生成: build\out\zygisk-packettool-tearhacker-debug.zip
 echo 刷机: Magisk App -^> 模块 -^> 从本地安装 -^> 选该 zip -^> 重启
 echo.
 pause

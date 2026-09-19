@@ -9,9 +9,12 @@
 
 #include "bootstrap.h"
 
-#include <android/log.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
+#include <android/log.h>
+
+#include <cstdint>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -29,7 +32,14 @@ namespace {
 
 zygisk::Api *g_api = nullptr;
 JNIEnv *g_env = nullptr;
-TargetConfig g_target;
+
+// pre 阶段算出来、post 阶段直接消费的结果。
+//
+// 分开存两个而不是只存一个 bool：
+//   post 阶段要给 Runtime 传进程名，而那时已经不能再去读 args / 用 JNI 了
+//   （见 read_process_name 的注释），所以名字必须在 pre 阶段就落在这里。
+bool g_inject = false;
+std::string g_process_name;
 
 std::string jstring_to_utf8(JNIEnv *env, jstring value) {
     if (env == nullptr || value == nullptr) return {};
@@ -78,94 +88,94 @@ std::string read_process_name(const zygisk::AppSpecializeArgs *args) {
     return read_cmdline_name();
 }
 
-std::string trim(const std::string &s) {
-    const char *ws = " \t\r\n";
-    const size_t begin = s.find_first_not_of(ws);
-    if (begin == std::string::npos) return {};
-    const size_t end = s.find_last_not_of(ws);
-    return s.substr(begin, end - begin + 1);
-}
-
-// 从 companion 的 socket 读回配置。stream socket 不保证一次读完，所以循环读到换行。
-std::string read_config_from(int fd) {
-    std::string out;
-    char chunk[256];
-    while (out.size() < sizeof(chunk) * 4) {
-        const ssize_t n = read(fd, chunk, sizeof(chunk));
-        if (n <= 0) break;
-        out.append(chunk, static_cast<size_t>(n));
-        if (out.find('\n') != std::string::npos) break;
+// 只发不管对端是否已关闭：用 MSG_NOSIGNAL 避免 SIGPIPE 把宿主进程打死。
+// 这段代码跑在别人的 App 进程里，一个 SIGPIPE 就是一次无声的崩溃。
+bool send_all(int fd, const std::string &data) {
+    size_t sent = 0;
+    while (sent < data.size()) {
+        const ssize_t n = ::send(fd, data.data() + sent, data.size() - sent, MSG_NOSIGNAL);
+        if (n <= 0) return false;
+        sent += static_cast<size_t>(n);
     }
-    return out;
+    return true;
 }
 
-TargetConfig load_target_config(zygisk::Api *api) {
-    // 配置经 root companion 回传：App 进程读不到 /data/adb，
-    // 所以由 companion（root 侧）读 /data/adb/modules/zygisk-ai-runtime/target.conf 再发回来。
-    // preAppSpecialize 之后 Api 全部失效，配置必须在这里读完。
-    TargetConfig cfg;  // 默认 enabled=false
-
-    if (api == nullptr) return cfg;
+bool query_should_inject(zygisk::Api *api, const std::string &process_name) {
+    // 拿不到进程名就无从判定，直接放弃 —— 比"猜一个"安全。
+    if (api == nullptr || process_name.empty()) return false;
 
     const int fd = api->connectCompanion();
     if (fd < 0) {
-        ZAI_LOGW("connectCompanion failed — 走默认（不注入）");
-        return cfg;
+        ZAI_LOGW("connectCompanion failed — 默认不注入");
+        return false;
     }
 
-    const std::string package = trim(read_config_from(fd));
-    close(fd);
+    // 请求：[uint32 长度][进程名]，长度前缀协议见 bootstrap.h。
+    const uint32_t len = static_cast<uint32_t>(process_name.size());
+    std::string req;
+    req.append(reinterpret_cast<const char *>(&len), sizeof(len));
+    req += process_name;
 
-    if (package.empty()) {
-        // 没有配置文件 = 不注入任何 App（安全默认，避免拖慢所有进程）
-        return cfg;
+    char answer = companion::kSkip;
+    if (send_all(fd, req)) {
+        const ssize_t got = ::read(fd, &answer, sizeof(answer));
+        if (got != sizeof(answer)) {
+            ZAI_LOGW("companion 无响应 — 默认不注入");
+        }
     }
+    ::close(fd);
 
-    cfg.enabled = true;
-    cfg.package_name = package;
-    ZAI_LOGI("target config: %s", package.c_str());
-    return cfg;
+    return answer == companion::kInject;
 }
 
 bool should_inject(const std::string &package_name) {
-    if (!g_target.enabled) return false;
+    if (!g_inject) return false;
     if (package_name.empty()) return false;
-    return package_name == g_target.package_name;
+    return package_name == g_process_name;
 }
 
 void pre_app_specialize(zygisk::AppSpecializeArgs *args) {
-    g_target = load_target_config(g_api);
-    const std::string name = read_process_name(args);
+    // ① 进程名必须在这一步取走。
+    //    此刻 args->nice_name 与 onLoad 保存的 JNIEnv 都还有效；
+    //    到了 postAppSpecialize 就没有保证了（见 read_process_name 注释）。
+    g_process_name = read_process_name(args);
 
-    // 可观测性：骨架阶段 g_target.enabled 恒为 false（见 load_target_config），
-    // 这意味着**不会注入任何进程**，模块加载完就 DLCLOSE 卸载。
-    // 只靠 on_load 那一条日志很难判断"链路到底通没通"，
+    // ② 判定交给 root 侧的 companion：配置在它那边读并可缓存，
+    //    这里只拿一个字节的结果，一次往返。
+    g_inject = query_should_inject(g_api, g_process_name);
+
+    // 可观测性：只靠 onLoad 那一条日志判断不了"链路到底通没通"，
     // 所以测试构建打开这条 trace：每个 App 进程 specialize 时都留痕，
     // 证明 Zygisk 确实把本模块注入到了进程里、且过滤逻辑真的跑了。
     // 发布构建默认关闭（否则每个 App 启动都打一条，日志量太大）。
 #ifdef ZAI_TRACE_BOOTSTRAP
-    ZAI_LOGI("specialize: pid=%d name=%s target_enabled=%d",
-             getpid(), name.c_str(), g_target.enabled ? 1 : 0);
+    ZAI_LOGI("specialize: pid=%d name=%s inject=%d",
+             getpid(), g_process_name.c_str(), g_inject ? 1 : 0);
 #endif
 
-    if (!should_inject(name)) {
+    if (!g_inject) {
         // 未 Hook 任何函数，可以安全卸载本模块。
+        //
+        // 🔴 这一步不是可选优化。Magisk 在 fork 出来的**每一个** App 进程里
+        //    都会先 dlopen 本 so，再回调 preAppSpecialize
+        //    （native/src/core/zygisk/module.cpp 的 run_modules_pre）。
+        //    不主动 DLCLOSE，这份十几 MB 的代码就会白白驻留在所有 App 进程里。
         if (g_api != nullptr) {
             g_api->setOption(zygisk::DLCLOSE_MODULE_LIBRARY);
         }
         return;
     }
 
-    ZAI_LOGI("target matched: %s", name.c_str());
-    // 目标进程：绝不设置 DLCLOSE，否则 post 后代码被 unmap。
+    ZAI_LOGI("target matched: %s", g_process_name.c_str());
+    // 目标进程：绝不设置 DLCLOSE，否则 post 之后代码被 unmap，Runtime 直接崩。
 }
 
-void post_app_specialize(const zygisk::AppSpecializeArgs *args) {
-    const std::string name = read_process_name(args);
-    if (!should_inject(name)) return;
+void post_app_specialize(const zygisk::AppSpecializeArgs * /*args*/) {
+    // 这里刻意不碰 args、不碰 JNI：只用 pre 阶段缓存下来的结果。
+    if (!g_inject) return;
 
     runtime::RuntimeContext ctx;
-    ctx.package_name = name;
+    ctx.package_name = g_process_name;
     ctx.pid = getpid();
 
     // Runtime 启动涉及 Frida-Gum / LSPlant 初始化，必须离开 specialize 线程，

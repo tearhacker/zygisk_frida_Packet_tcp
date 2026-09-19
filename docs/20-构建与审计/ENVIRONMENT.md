@@ -103,7 +103,7 @@ meson 交叉编译 Frida-Gum 17.18.0            → 1089/1089 目标全部完成
 CMake 构建本工程 native 层 + 链接 gum        → libai_analyzer.so
    → ELF64 / DYN (Shared object) / AArch64，13.5 MB
    → 导出 zygisk_module_entry · zygisk_companion_entry
-打包                                        → build/out/zygisk-ai-runtime.zip
+打包                                        → build/out/zygisk-packettool-tearhacker.zip
 ```
 **这是端到端的真实验证：不只是工具链能跑，是项目真的编出了可刷的 Magisk 模块。**
 

@@ -103,7 +103,7 @@ tools/   （5 个，外部工具接入说明）
 | `build/out/` | ❌ | **构建产物目录**，首次编译时生成 |
 | `module/zygisk/arm64-v8a.so` | ❌ | **构建产物**，首次编译时生成 |
 | `third_party/frida-gum/17.18.0/build/<abi>/libgum.a` | ❌ | **构建产物** |
-| `/data/local/tmp/zygisk-ai-runtime` | — | 设备侧路径，非本地 |
+| `/data/local/tmp/zygisk-packettool-tearhacker` | — | 设备侧路径，非本地 |
 
 **结论：无脚本引用了不存在的、本应存在的路径。** 3 处 MISS 全是构建产物，属预期。
 

@@ -203,6 +203,10 @@ add_library(ai_analyzer SHARED
 
     # --- Native 能力层 ---
     src/common/log.cpp
+
+    # --- IPC（M2 真机闭环第 2 段：Runtime 侧服务端）---
+    src/ipc/frame.cpp
+    src/ipc/ipc_server.cpp
 )
 
 target_include_directories(ai_analyzer PRIVATE
@@ -269,3 +273,28 @@ target_link_libraries(ai_analyzer PRIVATE
 if(ZAI_ENABLE_LSPLANT)
     target_link_libraries(ai_analyzer PRIVATE lsplant)
 endif()
+
+# ---------------------------------------------------------------------------
+# 4. Zygisk 模块的链接期纪律
+#
+#    Magisk 会把本 so dlopen 进**每一个** App 进程（zygisk/module.cpp 的
+#    run_modules_pre 遍历全部模块 fd，先加载、后由 preAppSpecialize 决定去留）。
+#    因此这里三条都不是"优化"，而是能不能安全地在真机上跑起来的前提：
+#
+#    ① --version-script：只导出 zygisk_module_entry / zygisk_companion_entry。
+#       实测未加时 arm64 产物导出 5698 个全局符号（2877 个是 glib/gum/capstone/
+#       json-glib/zai 的），它们会污染宿主进程的全局符号表。
+#       CXX_VISIBILITY_PRESET hidden 只管 C++，管不到这些 C 库，必须在链接期兜。
+#
+#    ② --exclude-libs,ALL：静态库自身的符号一律不外泄（与 ① 双保险）。
+#
+#    ③ -z lazy：不要 BIND_NOW。本 so 有十几 MB 的重定位项，
+#       若强制立即绑定，每个 App 进程启动时都要付一次全量重定位的开销。
+#
+#    详见 native/zygisk_exports.map 的注释。
+# ---------------------------------------------------------------------------
+target_link_options(ai_analyzer PRIVATE
+    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/zygisk_exports.map
+    -Wl,--exclude-libs,ALL
+    -Wl,-z,lazy
+)

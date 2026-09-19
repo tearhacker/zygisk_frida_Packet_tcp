@@ -81,10 +81,10 @@ module/webroot/
 
 ## 4. 目录与路径
 
-模块安装后固定路径（id 为 `zygisk-ai-runtime`，不可改）：
+模块安装后固定路径（id 为 `zygisk-packettool-tearhacker`，不可改）：
 
 ```text
-/data/adb/modules/zygisk-ai-runtime/
+/data/adb/modules/zygisk-packettool-tearhacker/
 ├── module.prop
 ├── target.conf          注入目标（一行包名，# 开头为注释）
 ├── zygisk/<abi>.so
@@ -105,7 +105,7 @@ module/webroot/
 
 | 面板字段 | 命令 | 读不到时 |
 |---|---|---|
-| 模块元信息 | `cat /data/adb/modules/zygisk-ai-runtime/module.prop` | 标「异常」 |
+| 模块元信息 | `cat /data/adb/modules/zygisk-packettool-tearhacker/module.prop` | 标「异常」 |
 | 注入目标 | `cat .../target.conf 2>/dev/null` | 显示「未配置（不注入任何 App）」 |
 | 已装产物 | `ls -l .../zygisk` | 标「异常」 |
 | 设备 ABI | `getprop ro.product.cpu.abi` / `ro.product.cpu.abilist` | 未知 |

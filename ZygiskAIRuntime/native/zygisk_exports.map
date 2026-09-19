@@ -1,0 +1,36 @@
+/*
+ * Zygisk 模块 so 的符号导出白名单。
+ *
+ * 为什么必须有这个文件：
+ *   Magisk 的 Zygisk 会把本 so **dlopen 到每一个 App 进程**里
+ *   （native/src/core/zygisk/module.cpp :: run_modules_pre 遍历所有模块 fd）。
+ *   默认情况下，静态链进来的 glib / json-glib / capstone / frida-gum 会把它
+ *   们的符号一起导出 —— 实测 arm64 产物导出 5698 个全局符号，其中 2877 个是
+ *   g_ / gum_ / cs_ / json_ / zai:: 前缀。
+ *
+ *   后果不是"不优雅"，是三类实打实的故障：
+ *     1. 符号污染：目标进程（游戏）里若已有同名符号，链接器解析可能被我们的
+ *        覆盖，表现为宿主 App 莫名其妙崩溃 / 行为异常；
+ *     2. 与其他 Zygisk 模块互相踩（两个模块都静态链了 glib 时尤其明显）；
+ *     3. dlopen 变慢：符号表越大，每次加载的哈希查找与重定位越贵，
+ *        而这个代价是**每个 App 进程**都要付的。
+ *
+ *   官方 zygisk-module-sample 的 Application.mk 用
+ *     -fvisibility=hidden -fvisibility-inlines-hidden
+ *   就是出于同一目的。但那只对 C++ 起作用 —— 本项目里 glib / gum / capstone
+ *   是 C 代码，visibility 属性管不到它们，必须在链接期用 version script 兜住。
+ *
+ *   CMake 侧同时加 -Wl,--exclude-libs,ALL：让静态库自身的符号一律不导出。
+ *
+ * 🔴 只导出这两个符号。Zygisk 只认它们：
+ *      dlsym(h, "zygisk_module_entry")      —— App/system_server 侧入口
+ *      dlsym(h, "zygisk_companion_entry")   —— root 守护侧入口
+ *    少了任何一个，模块都会被 Magisk 静默丢弃（valid() 返回 false）。
+ */
+{
+  global:
+    zygisk_module_entry;
+    zygisk_companion_entry;
+  local:
+    *;
+};

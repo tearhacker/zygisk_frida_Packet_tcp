@@ -1,0 +1,20 @@
+{
+  "_readme": [
+    "形态 B：SSE 常驻。**服务端必须先起来**，客户端才连得上。",
+    "启动：双击 ZygiskAIRuntime/start-mcp.bat（默认 --transport sse --port 60501）",
+    "  或：python mcp_server.py --transport sse --port 60501",
+    "",
+    "⚠️ 别在 AI 会话的后台任务里起：实测两次都随会话被回收（46 分钟 / 数分钟后 failed）。",
+    "⚠️ 没起服务就点连接 → SSE error: TypeError: fetch failed: connect ECONNREFUSED 127.0.0.1:60501",
+    "   这不是配置写错，是 60501 上没人监听。先 netstat -ano | findstr 60501。",
+    "",
+    "常驻服务只解决 PC<->本服务 这一层；PC<->手机 的 60500 仍由服务启动时自动 adb forward。"
+  ],
+  "mcpServers": {
+    "zy_packet_tearhacker": {
+      "type": "sse",
+      "url": "http://127.0.0.1:60501/sse",
+      "description": "Zygisk AI Runtime - Android 动态分析（hook / 内存 / 抓包），SSE 常驻形态"
+    }
+  }
+}

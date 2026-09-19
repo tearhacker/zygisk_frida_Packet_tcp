@@ -96,7 +96,7 @@ P-1b  Android 构建项
     —— codeload zip 通道逐个拉取（`build/scripts/fetch_subproject.py`）
 [x] Frida-Gum 源码构建（meson 交叉编译，1089/1089 目标）
 [x] 本工程 native 构建 → libai_analyzer.so（ELF64 / AArch64 / 13.5 MB）
-[x] 打包 → build/out/zygisk-ai-runtime.zip（**项目第一个可刷的 Android 二进制**）
+[x] 打包 → build/out/zygisk-packettool-tearhacker.zip（**项目第一个可刷的 Android 二进制**）
 
 [ ] LSPlant 构建 —— NDK r27d 的 clang 18 与 LSPlant master 不兼容（详见 §7）
 [ ] （M2 才需要）接入 ARM64 + Magisk + Zygisk 已启用的设备
@@ -161,7 +161,7 @@ python tests/accept_mvp.py    → 28/28，10 节，打印可核对证据
 
 ```text
 ① ~~M1 编译~~ **✅ 已完成**（2026-09-19）
-   产出 build/out/zygisk-ai-runtime.zip（arm64-v8a 模块 so，Frida-Gum 已静态链入）。
+   产出 build/out/zygisk-packettool-tearhacker.zip（arm64-v8a 模块 so，Frida-Gum 已静态链入）。
    未闭合：LSPlant（见 §7），已用 `-DZAI_ENABLE_LSPLANT=OFF` 绕过，无 M2 范围内的功能损失。
 
 ② 设备就绪后：M2 Walking Skeleton

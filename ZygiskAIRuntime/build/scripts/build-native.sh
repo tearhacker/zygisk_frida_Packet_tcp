@@ -55,6 +55,40 @@ NINJA_DIR="$(dirname "${NINJA_EXE:-}")"
 [ -d "$NINJA_DIR" ] && PATH="$PATH:$NINJA_DIR"
 export PATH
 
+# ⚠️ ZAI_ENABLE_LSPLANT 默认 OFF（2026-09-19 改）：
+#   LSPlant master 用了 C++20/23 模板 lambda
+#   （art_method.cxx:50 `"..._sym.hook->* []<MemBackup auto backup>`），
+#   NDK r27d 的 clang 18 解析不了，报 "too many arguments, expected 0, have 1"。
+#   third_party 不可改，所以换 NDK r28+（clang ≥19）之前它**必然编不过**。
+#   默认 ON 会导致默认构建必失败，故默认关闭。想试编译用
+#     ZAI_ENABLE_LSPLANT=ON bash build/scripts/build-native.sh <abi>
+#   集成恢复时仍需保持 LSPLANT_BUILD_SHARED=ON（LGPL-3.0 动态链接约束）。
+#
+# ⚠️ 注释必须放在整条 cmake 命令**之前**：续行符 `\` 后面紧跟 `#` 会把
+#    下一行吃掉，让 -D 参数变成独立命令（实测报 "command not found"）。
+# ⚠️ 必须按当前 ABI 重新生成 gum 清单，不能靠缓存：
+#   build/generated/gum_includes.cmake 是**不带 ABI 后缀的单一文件**，多 ABI 共用。
+#   切 ABI 构建若不重新生成，会把上一个 ABI 的静态库链进来 —— 实测 arm64 链接时
+#   拉进了 armeabi-v7a 的库，ld.lld 报
+#     ".../build/armeabi-v7a/builddir/.../libcapstone.a is incompatible with aarch64linux"
+#   这类错误只在链接阶段才暴露，排查成本很高，所以在 configure 前强制重生成。
+PYTHON_EXE="${PYTHON_EXE:-${PYTHON_VENV:-}}"
+if [ -z "${PYTHON_EXE}" ] || [ ! -f "${PYTHON_EXE}" ]; then
+  PYTHON_EXE=""
+  for c in python3 python py; do
+    if command -v "$c" >/dev/null 2>&1; then PYTHON_EXE="$(command -v "$c")"; break; fi
+  done
+fi
+if [ -z "${PYTHON_EXE}" ]; then
+  echo "ERROR: 找不到 python，无法生成 gum 清单" >&2
+  exit 1
+fi
+
+echo "== regenerate gum include/libs manifest ($ABI) =="
+# 必须用 ROOT_WIN（D:/...）：$ROOT 是 Git Bash 的 /d/... 形式，
+# 传给 Windows 原生 python.exe 会变成 "D:\d\..."，报 file not found。
+"$PYTHON_EXE" "$ROOT_WIN/build/scripts/gen_gum_include_dirs.py" --abi "$ABI"
+
 echo "== cmake configure ($ABI, api $API_LEVEL) =="
 "$CMAKE_EXE" -S "$ROOT_WIN/native" -B "$BUILD_DIR_WIN" \
   -G Ninja \
@@ -65,7 +99,7 @@ echo "== cmake configure ($ABI, api $API_LEVEL) =="
   -DANDROID_STL=c++_static \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES=ON \
-  -DZAI_ENABLE_LSPLANT="${ZAI_ENABLE_LSPLANT:-ON}"
+  -DZAI_ENABLE_LSPLANT="${ZAI_ENABLE_LSPLANT:-OFF}"
 
 echo "== build (ninja) =="
 # 这里**不用** `cmake --build`：

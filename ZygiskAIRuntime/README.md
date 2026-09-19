@@ -72,7 +72,7 @@ docs/ tests/   文档与测试
 ✅ **已产出可刷的 Magisk 模块 zip**（2026-09-19）
 
 ```text
-build/out/zygisk-ai-runtime.zip
+build/out/zygisk-packettool-tearhacker.zip
   └── zygisk/arm64-v8a.so   13.5 MB · ELF64 / AArch64 / DYN
       导出 zygisk_module_entry · zygisk_companion_entry
       Frida-Gum + glib + capstone 已静态链入
@@ -88,9 +88,9 @@ build/out/zygisk-ai-runtime.zip
 
 ```text
 测试版.bat   → debug 构建（断言开、保留符号、不 strip）
-               产物 build/out/zygisk-ai-runtime-debug.zip
+               产物 build/out/zygisk-packettool-tearhacker-debug.zip
 发布版.bat   → release 构建（NDEBUG、strip 调试信息）
-               产物 build/out/zygisk-ai-runtime.zip
+               产物 build/out/zygisk-packettool-tearhacker.zip
 ```
 
 两者都只是入口，实际逻辑在 `scripts/build_all.py`（Python 实现，不依赖 bash）。
@@ -203,25 +203,181 @@ python scripts/build_all.py --abi arm64-v8a   --mode release
 **默认不注入任何 App**（安全默认）：配置文件不存在时 `enabled=false`，
 模块加载后立即 `DLCLOSE` 卸载，只在 logcat 留痕。
 
-要注入指定 App，在手机上建配置文件：
+要注入指定 App，在手机上建配置文件。**每行一个包名，支持多包名**：
 
 ```bash
 adb shell
 su
-echo "com.example.target" > /data/adb/modules/zygisk-ai-runtime/target.conf
-chmod 644 /data/adb/modules/zygisk-ai-runtime/target.conf
+cat > /data/adb/modules/zygisk-packettool-tearhacker/target.conf <<'EOF'
+# 一行一个包名，# 开头是注释，空行忽略
+com.example.target
+com.example.target:push
+com.another.game
+EOF
+chmod 644 /data/adb/modules/zygisk-packettool-tearhacker/target.conf
 ```
 
-然后重启目标 App（不用重启手机）。之后的行为：
+手机上也可以直接用模块 WebUI 编辑（KSU 管理器 → 模块 → 打开），
+支持多行编辑、从已装应用下拉追加、逐行校验。
+
+然后**重启目标 App**（不用重启手机）。之后的行为：
 
 ```text
 其它进程   加载 → 过滤不通过 → 立刻卸载    日志: specialize: ... target_enabled=0
-目标进程   加载 → 过滤通过   → 拉起 Runtime 日志: target matched: com.example.target
+目标进程   加载 → 过滤通过   → 拉起 Runtime 日志: target config: N package(s)
 ```
+
+⚠️ **改完配置必须重启目标 App**。配置只在进程 fork 出来的那一刻
+（`preAppSpecialize`）读取一次，运行中改文件对已存在的进程无效 —— 这是 Zygisk 的固有约束。
+因此「不重启就把一个正在跑的进程拉进分析」当前做不到。
 
 **为什么必须走 root companion**：App 进程读不到 `/data/adb`（目录权限），
 所以配置由 Zygisk companion 在 **root 侧**读文件，再经 socket 回传给 App 进程。
 这是 Zygisk 的固有约束，不是可选设计。
+
+## 真机联调（M2 第 2 段）
+
+Runtime 侧已实现 IPC 服务端：在目标进程内监听 **`127.0.0.1:60500`（仅回环）**，
+与 PC 侧完成 `HELLO → HELLO_ACK → READY` 握手，支持 `PING/PONG` 心跳与命令收发。
+
+> ⚠️ 只绑回环是硬约束。Runtime 跑在带 root 能力的进程里，
+> 绑 `0.0.0.0` 等于把内存读写权限开给同网段任何人。
+
+### 步骤
+
+```bash
+# 1. 刷入模块（Magisk / KSU → 模块 → 从本地安装 → 选 build/out/zygisk-packettool-tearhacker.zip）
+adb push build/out/zygisk-packettool-tearhacker.zip /sdcard/Download/
+
+# 2. 写目标（每行一个包名；也可直接用模块 WebUI 编辑）
+adb shell su -c 'printf "%s\n" com.tencent.tmgp.sgame > /data/adb/modules/zygisk-packettool-tearhacker/target.conf'
+adb shell su -c 'chmod 644 /data/adb/modules/zygisk-packettool-tearhacker/target.conf'
+
+# 3. 重启目标 App（必须：配置只在 fork 那一刻读一次）
+adb shell am force-stop com.tencent.tmgp.sgame
+# 然后手机上手动打开游戏
+
+# 4. 端口转发（一般不用手动做：PC 侧启动时会**自动**建，并用 adb forward --list 复核）
+adb forward tcp:60500 tcp:60500
+
+# 5. 启动 PC 侧（关键：**不要带 --mock**）
+python mcp_server.py --transport sse --port 60501
+```
+
+> 自动转发不是锦上添花。2026-09-19 真机排障时，所有工具返回 `E_NOT_READY`、
+> 重连计数涨到 70+，翻遍 PC 侧代码最后发现根因只是**没人建 forward**：
+> 设备侧 60500 明明在 LISTEN，PC 侧却没有任何 LISTENING。
+> 而「忘了建 forward」和「Runtime 挂了」的现象完全一样，靠肉眼看区分不了。
+> forward 会在拔线 / 重启手机 / 重启 adb server 后失效，所以每次启动都重建。
+
+### 验证
+
+```bash
+# 手机侧：确认 Runtime 起来并在监听
+adb logcat -d | grep -E "ZAI:Runtime|ZAI:Ipc"
+# 期望看到：
+#   ZAI:Runtime: runtime ready: pkg=... pid=...
+#   ZAI:Ipc:     IPC 监听 127.0.0.1:60500（仅回环）pkg=...
+#   ZAI:Ipc:     握手完成 sid=sess_... pkg=...
+```
+
+若只有 `runtime ready` 而没有 `IPC 监听`，说明端口被占或权限不足——
+Runtime 不会因为 IPC 失败而阻断宿主 App（避免搞崩游戏），但 PC 侧会连不上，
+此时 `runtime.status` 会如实上报 `ipc_running=false`。
+
+### 当前能力边界（如实）
+
+| 命令 | 状态 |
+|---|---|
+| `session.info` / `session.capabilities` / `session.list` | ✅ 真实数据 |
+| `process.info` / `process.list` / `process.modules` | ✅ 真实数据（读 `/proc/self/maps`） |
+| `memory.read` | ✅ 真实读内存（先校验映射可读，越界返回 `E_BAD_ARGS`） |
+| `runtime.status` | ✅ 真实状态 |
+| `process.threads` | ✅ 真实数据（读 `/proc/self/task`，含 tid / name / state） |
+| `memory.maps` | ✅ 真实数据（读 `/proc/self/maps`，含 module / start / end / permissions） |
+| `memory.dump` / `memory.write` | ❌ 报 `E_NOT_READY`（JOB 类，产物应走 Artifact 通道） |
+| `runtime.hook` / `runtime.unhook` | ❌ 报 `E_NOT_READY`（Hook 未接线） |
+| `network.*` / `packet.*` | ❌ 报 `E_NOT_READY`（抓包未实现） |
+| `artifact.*` / `job.*` / `device.*` | ❌ 报 `E_NOT_READY` |
+
+未实现的命令**不会**返回假数据。capabilities 也如实上报 `false`，
+PC 侧 Tool Surface 会据此摘除对应工具，而不是等 AI 调了才报错。
+
+## MCP 客户端对接
+
+入口只有一个：**`ZygiskAIRuntime/mcp_server.py`**。两种形态二选一。
+
+### 形态 A：stdio（推荐）
+
+客户端自己 spawn 进程，不需要你先起服务。
+
+```json
+{
+  "mcpServers": {
+    "zy_packet_tearhacker": {
+      "command": "C:/Users/52334/.workbuddy-ai/binaries/python/envs/default/Scripts/python.exe",
+      "args": [
+        "D:/泪心安卓领域基本盘技术/zygisk_frida_PackerGetPrivateTool/ZygiskAIRuntime/mcp_server.py",
+        "--adb", "C:/Program Files/platform-tools/adb.exe",
+        "--device-port", "60500"
+      ]
+    }
+  }
+}
+```
+
+**参数全部可省略**，省略即用默认值（`mcp.json.example` 里有完整版）：
+
+| 参数 | 默认值 | 含义 |
+|---|---|---|
+| `--adb` | `C:/Program Files/platform-tools/adb.exe` | adb 路径（Windows；不存在则退回 PATH） |
+| `--device-port` | `60500` | PC ↔ 手机 Runtime IPC，adb forward 两端都用它 |
+| `--port` | `60501` | MCP 客户端 ↔ 本服务，**只有 sse 形态才监听** |
+| `--transport` | `stdio` | `stdio` / `sse` / `streamable-http` |
+| `--serial` | 无 | 多台设备时指定序列号 |
+| `--endpoint` | 无 | 直接给 IPC 端点，给了它就不走 adb forward |
+| `--mock` | 关 | 用 Mock 后端，不需要真机 |
+| `--mount` | 空 | 挂载 Expert 组，如 `Memory+,Packet+,Job` |
+
+不想手抄配置？让服务自己吐一份：`python mcp_server.py --print-config`。
+
+🔴 `command` 必须是**装了 mcp SDK 的那个 Python**，换成别的会直接
+`ModuleNotFoundError: mcp`。
+
+### 形态 B：SSE 常驻
+
+服务端必须先跑起来，客户端只填 URL。
+
+```bash
+python mcp_server.py --transport sse --port 60501   # 或双击 start-mcp.bat
+```
+
+```json
+{"mcpServers": {"zy_packet_tearhacker": {"type": "sse", "url": "http://127.0.0.1:60501/sse"}}}
+```
+
+⚠️ 别在 AI 会话的后台任务里起常驻服务：实测两次都随会话被回收
+（46 分钟 / 数分钟后 failed）。要常驻就用独立窗口（`start-mcp.bat`）。
+`ECONNREFUSED :60501` = 服务没起，先 `netstat -ano | findstr 60501`。
+
+### 排障：Runtime 连不上时
+
+服务**不会**因为连不上 Runtime 而退出 —— 工具照常注册（Core 25），
+调用时返回结构化的 `E_NOT_READY`，里面带链路状态、端点和下一步该查什么。
+（早先 connect 失败会让整个进程退出，stdio 形态下用户只能看到一个"连接失败"，
+所有排障信息都被吞掉，已修。）
+
+确认顺序：
+
+```bash
+python mcp_server.py --check          # 打印装配结果与工具清单（不启动服务）
+adb devices -l                        # 设备在不在
+adb forward --list                    # 有没有 tcp:60500 这一条
+adb logcat | grep -i ZAI              # 设备侧 Runtime 有没有起
+```
+
+🔴 `forward 建好 ≠ Runtime 起来了`。模块没刷 / 目标 App 没重启 / 设备没有 root
+都会让握手失败，此时设备侧 60500 上可能根本没有我们的监听。
 
 文件格式：一行一个包名，取第一个非空且非 `#` 开头的行。
 

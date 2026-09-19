@@ -80,7 +80,7 @@
     margin-bottom: 10px;
     word-break: break-all;
   }
-  input[type=text] {
+  input[type=text], textarea, select {
     width: 100%;
     background: #0b0d12;
     border: 1px solid rgba(255, 255, 255, .13);
@@ -89,6 +89,20 @@
     padding: 9px 11px;
     font-size: 14px;
     font-family: inherit;
+  }
+  textarea {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  .pkgchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12px;
+    background: #1b202b;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 10px;
   }
   .btnrow { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   button {
@@ -169,18 +183,25 @@
 </section>
 
 <section class="card">
-  <h2>注入目标</h2>
+  <h2>注入目标（支持多包名 / 多进程）</h2>
   <div class="target" id="targetNow">…</div>
-  <input type="text" id="pkgInput" list="pkgList" placeholder="输入或选择包名，如 com.example.app" autocomplete="off">
-  <datalist id="pkgList"></datalist>
+  <div class="pkgchips" id="pkgChips"></div>
+  <textarea id="pkgInput" rows="5" spellcheck="false"
+    placeholder="每行一个包名，例如：&#10;com.tencent.tmgp.sgame&#10;com.tencent.tmgp.sgame:push&#10;com.another.game"></textarea>
   <div class="btnrow">
-    <button class="primary" id="btnSave">保存</button>
+    <button class="primary" id="btnSave">保存全部</button>
     <button id="btnClear">清空（停止注入）</button>
-    <button id="btnLoadPkgs">从已装应用选择</button>
+    <button id="btnLoadPkgs">载入已装应用</button>
+  </div>
+  <div class="btnrow">
+    <select id="pkgSelect"><option value="">（先点「载入已装应用」）</option></select>
+    <button id="btnAddPkg">追加选中</button>
   </div>
   <div class="hint" id="saveHint">
-    配置写入 <span style="font-family:ui-monospace,monospace">target.conf</span>。目标进程在启动时读取配置，
-    <b>改完必须重启目标 App 才生效</b>；模块不会自动杀进程。清空后任何 App 都不会被注入。
+    配置写入 <span style="font-family:ui-monospace,monospace">target.conf</span>，<b>每行一个包名</b>，
+    可同时挂多个游戏 / 主包与子进程。<code>#</code> 开头为注释，空行忽略。
+    目标进程在<b>启动时</b>才读配置，<b>改完必须重启目标 App 才生效</b>；
+    模块不会自动杀进程。清空后任何 App 都不会被注入。
   </div>
 </section>
 
@@ -211,7 +232,7 @@
 (function () {
   'use strict';
 
-  var MODDIR = '/data/adb/modules/zygisk-ai-runtime';
+  var MODDIR = '/data/adb/modules/zygisk-packettool-tearhacker';
   var TARGET = MODDIR + '/target.conf';
   var PKG_RE = /^[A-Za-z0-9_.]+$/;
 
@@ -275,8 +296,6 @@
     return found;
   }
 
-  var lastTarget = '';
-
   function loadOverview() {
     var cmds = {
       prop: 'cat ' + MODDIR + '/module.prop',
@@ -315,7 +334,7 @@
       }
 
       var rows = [
-        ['模块 ID', esc(prop.id || 'zygisk-ai-runtime')],
+        ['模块 ID', esc(prop.id || 'zygisk-packettool-tearhacker')],
         ['名称', esc(prop.name || '未验证')],
         ['版本', r.prop.state === 'ok' ? esc(prop.version || '未记录') : render(r.prop, '未验证')],
         ['模块目录', '<span style="font-size:12px">' + esc(MODDIR) + '</span>'],
@@ -352,22 +371,53 @@
     el.className = 'banner hidden';
   }
 
+  // 把 target.conf 原文解析成包名数组：去空白、丢空行与 '#' 注释行、去重。
+  // 规则必须与 native 侧 entry.cpp::read_target_packages 保持一致。
+  function parsePkgList(text) {
+    var seen = {};
+    var out = [];
+    String(text || '').split('\n').forEach(function (line) {
+      var s = line.trim();
+      if (!s || s.charAt(0) === '#') return;
+      if (seen[s]) return;
+      seen[s] = 1;
+      out.push(s);
+    });
+    return out;
+  }
+
+  function renderChips(list) {
+    $('pkgChips').innerHTML = list.map(function (p) {
+      return '<span class="chip">' + esc(p) + '</span>';
+    }).join('');
+  }
+
   function loadTarget() {
     return run('cat ' + TARGET).then(function (res) {
-      lastTarget = res.state === 'ok' ? res.text.split('\n')[0].trim() : '';
       var el = $('targetNow');
-      if (res.state === 'ok' && lastTarget) {
-        el.innerHTML = esc(lastTarget);
+      if (res.state === 'ok') {
+        var list = parsePkgList(res.text);
+        if (list.length) {
+          el.innerHTML = badge('ok', '已配置 ' + list.length + ' 个包名');
+        } else {
+          el.innerHTML = badge('idle', '未配置 · 不注入任何 App');
+        }
+        renderChips(list);
+        $('pkgInput').value = list.join('\n');
       } else if (res.state === 'empty') {
         el.innerHTML = badge('idle', '未配置 · 不注入任何 App');
+        renderChips([]);
+        $('pkgInput').value = '';
       } else if (res.state === 'fail') {
         el.innerHTML = badge('err', '读取失败');
+        renderChips([]);
       } else if (res.state === 'error') {
         el.innerHTML = badge('err', '执行异常');
+        renderChips([]);
       } else {
         el.innerHTML = badge('idle', '未验证');
+        renderChips([]);
       }
-      $('pkgInput').value = lastTarget;
     });
   }
 
@@ -401,23 +451,33 @@
   }
 
   function save() {
-    var pkg = $('pkgInput').value.trim();
-    var err = validatePkg(pkg);
-    if (err) {
-      $('saveHint').innerHTML = '<span style="color:var(--err)">' + err + '</span>';
-      if (window.KSU) window.KSU.toast(err);
+    var list = parsePkgList($('pkgInput').value);
+    if (!list.length) {
+      $('saveHint').innerHTML = '<span style="color:var(--err)">至少需要一个包名</span>';
+      if (window.KSU) window.KSU.toast('至少需要一个包名');
       return;
+    }
+    // 逐个校验，第一个不合法的直接点名报错，不让整份配置悄悄写坏。
+    for (var i = 0; i < list.length; i++) {
+      var err = validatePkg(list[i]);
+      if (err) {
+        var msg = '第 ' + (i + 1) + ' 行「' + esc(list[i]) + '」：' + err;
+        $('saveHint').innerHTML = '<span style="color:var(--err)">' + msg + '</span>';
+        if (window.KSU) window.KSU.toast(err);
+        return;
+      }
     }
     var btn = $('btnSave');
     btn.disabled = true;
-    // 包名已过白名单，只含 [A-Za-z0-9_.]，拼进 sh -c 无注入风险。
-    var cmd = "sh -c \"printf '%s\\n' '" + pkg + "' > " + TARGET + ".tmp"
+    // 每个包名都已过 PKG_RE 白名单（只含 [A-Za-z0-9_.]），拼进 sh -c 无注入风险。
+    var args = list.map(function (p) { return "'" + p + "'"; }).join(' ');
+    var cmd = "sh -c \"printf '%s\\n' " + args + " > " + TARGET + ".tmp"
       + " && mv " + TARGET + ".tmp " + TARGET
       + " && chmod 0644 " + TARGET + "\"";
     window.KSU.exec(cmd, {}, 15000).then(function (r) {
       btn.disabled = false;
       if (r.errno === 0) {
-        window.KSU.toast('已保存，重启目标 App 生效');
+        window.KSU.toast('已保存 ' + list.length + ' 个包名，重启目标 App 生效');
         loadTarget();
       } else {
         $('saveHint').innerHTML = '<span style="color:var(--err)">写入失败：' + esc(r.stderr || ('errno=' + r.errno)) + '</span>';
@@ -447,9 +507,9 @@
     btn.textContent = '加载中…';
     var names = window.KSU.listPackages('all');
     if (!names.length) names = window.KSU.listPackages();
-    var dl = $('pkgList');
+    var sel = $('pkgSelect');
     if (!names.length) {
-      btn.textContent = '从已装应用选择';
+      btn.textContent = '载入已装应用';
       btn.disabled = false;
       $('saveHint').innerHTML = '<span style="color:var(--warn)">未能取得应用列表，请手动输入包名。</span>';
       return;
@@ -457,12 +517,29 @@
     var info = window.KSU.getPackagesInfo(names.slice(0, 400));
     var label = {};
     info.forEach(function (i) { if (i && i.packageName) label[i.packageName] = i.appLabel || ''; });
-    dl.innerHTML = names.map(function (n) {
+    sel.innerHTML = '<option value="">（选择一个应用追加到列表）</option>' + names.map(function (n) {
       var lb = label[n] ? '（' + esc(label[n]) + '）' : '';
       return '<option value="' + esc(n) + '">' + esc(n) + lb + '</option>';
     }).join('');
     btn.textContent = '已载入 ' + names.length + ' 个应用';
     btn.disabled = false;
+  }
+
+  // 把下拉里选中的应用追加进编辑区（不直接覆盖，方便一次挂多个）。
+  function addSelectedPkg() {
+    var v = $('pkgSelect').value;
+    if (!v) {
+      if (window.KSU) window.KSU.toast('先选一个应用');
+      return;
+    }
+    var cur = parsePkgList($('pkgInput').value);
+    if (cur.indexOf(v) >= 0) {
+      if (window.KSU) window.KSU.toast('已在列表中');
+      return;
+    }
+    cur.push(v);
+    $('pkgInput').value = cur.join('\n');
+    if (window.KSU) window.KSU.toast('已追加「' + v + '」，记得点保存');
   }
 
   // 设备侧 Runtime 监听端口。页面跑在手机上，只能判这一段；
@@ -493,13 +570,14 @@
 
   function loadService() {
     return run('cat ' + TARGET).then(function (t) {
-      var pkg = t.state === 'ok' ? t.text.split('\n')[0].trim() : '';
-      var hasPkg = !!pkg && PKG_RE.test(pkg) && pkg.indexOf('.') > 0;
+      // 多包名：对每个目标包名各跑一次 pidof，任一在运行即算 running。
+      var pkgs = t.state === 'ok' ? parsePkgList(t.text) : [];
+      var valid = pkgs.filter(function (p) { return PKG_RE.test(p) && p.indexOf('.') > 0; });
 
       return Promise.all([
         run('cat /proc/net/tcp'),
         run('cat /proc/net/tcp6'),
-        hasPkg ? run('pidof ' + pkg) : Promise.resolve(null)
+        Promise.all(valid.map(function (p) { return run('pidof ' + p); }))
       ]).then(function (r) {
         var bar = $('svcBar');
         var txt = $('svcText');
@@ -522,15 +600,18 @@
 
         var running = false;
         var procTxt;
-        if (!hasPkg) {
+        if (!valid.length) {
           procTxt = badge('idle', '未配置目标');
-        } else if (r[2] === null) {
-          procTxt = badge('idle', '未验证');
-        } else if (r[2].state === 'ok' && r[2].text.trim() !== '') {
-          running = true;
-          procTxt = esc(pkg) + ' · pid ' + esc(r[2].text.trim().split(/\s+/)[0]);
         } else {
-          procTxt = esc(pkg) + ' · ' + badge('idle', '未运行');
+          var live = [];
+          valid.forEach(function (p, i) {
+            var pr = r[2][i];
+            if (pr && pr.state === 'ok' && pr.text.trim() !== '') {
+              running = true;
+              live.push(p + ' → pid ' + pr.text.trim().split(/\s+/).join(', '));
+            }
+          });
+          procTxt = running ? esc(live.join('  ·  ')) : badge('idle', '均未运行');
         }
 
         $('svcListen').innerHTML = listen ? badge('ok', '监听中') : badge('idle', '未监听');
@@ -565,6 +646,7 @@
   $('btnSave').onclick = save;
   $('btnClear').onclick = clearTarget;
   $('btnLoadPkgs').onclick = loadPkgs;
+  $('btnAddPkg').onclick = addSelectedPkg;
   $('btnRefreshLog').onclick = loadLog;
 
   var autoTimer = null;

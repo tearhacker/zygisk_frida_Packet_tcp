@@ -24,8 +24,8 @@ set -uo pipefail
 
 ABI="${ABI:-arm64-v8a}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ZIP="$ROOT/build/out/zygisk-ai-runtime.zip"
-MODULE_ID="zygisk-ai-runtime"
+ZIP="$ROOT/build/out/zygisk-packettool-tearhacker.zip"
+MODULE_ID="zygisk-packettool-tearhacker"
 TAGS="ZAI:Zygisk ZAI:Gum ZAI:Runtime"
 
 ADB="${ADB_EXE:-adb}"
@@ -92,10 +92,10 @@ do_push() {
     [ -f "$ZIP" ] || die "找不到 $ZIP —— 先跑 python scripts/package.py"
     require_device
     echo "pushing $ZIP -> /sdcard/Download/"
-    "$ADB" push "$ZIP" "/sdcard/Download/zygisk-ai-runtime.zip" || die "push 失败"
+    "$ADB" push "$ZIP" "/sdcard/Download/zygisk-packettool-tearhacker.zip" || die "push 失败"
     echo
     echo "下一步（必须手工）："
-    echo "  Magisk App → 模块 → 从本地安装 → 选 /sdcard/Download/zygisk-ai-runtime.zip"
+    echo "  Magisk App → 模块 → 从本地安装 → 选 /sdcard/Download/zygisk-packettool-tearhacker.zip"
     echo "  安装完成后重启，再跑："
     echo "      bash scripts/verify_device.sh log"
 }

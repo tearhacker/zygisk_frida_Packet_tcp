@@ -7,9 +7,9 @@ set ADB=C:\Program Files\platform-tools\adb.exe
 if not exist "%ADB%" set ADB=adb
 
 "%ADB%" devices
-"%ADB%" push "%ROOT%\module" /data/local/tmp/zygisk-ai-runtime
+"%ADB%" push "%ROOT%\module" /data/local/tmp/zygisk-packettool-tearhacker
 echo.
-echo 已推到 /data/local/tmp/zygisk-ai-runtime
+echo 已推到 /data/local/tmp/zygisk-packettool-tearhacker
 echo 接下来请在 Magisk App 中「安装 → 从本地安装」选中目录内的 zip（见 package.bat），
 echo 或直接在 Magisk 中刷入打包好的 zip。
 echo.

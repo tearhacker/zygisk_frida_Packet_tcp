@@ -1,9 +1,31 @@
 {
+  "_readme": [
+    "形态 A（推荐）：客户端 spawn 进程、走 stdio。args 里的参数全部可省略，",
+    "  --adb         默认 C:/Program Files/platform-tools/adb.exe",
+    "  --device-port 默认 60500（PC <-> 手机 Runtime IPC，启动时自动 adb forward）",
+    "  --port        默认 60501（只在 --transport sse 时才监听）",
+    "  --transport   默认 stdio",
+    "最短写法：args 里只留 mcp_server.py 一个元素即可。",
+    "",
+    "🔴 command 必须是**装了 mcp SDK 的那个 python**（本机即本文件里的 venv 路径）。",
+    "   换成别的 python 会直接起不来：ModuleNotFoundError: mcp。",
+    "",
+    "🔴 60500 != 60501：60500 是 PC<->手机 的 Runtime IPC，60501 是 MCP 客户端<->本服务。",
+    "   stdio 形态下 60501 根本不监听；看到 ECONNREFUSED :60501 说明你连的是 SSE 形态。",
+    "",
+    "形态 B（SSE 常驻）见 mcp-sse.json.example。"
+  ],
   "mcpServers": {
     "zy_packet_tearhacker": {
-      "type": "sse",
-      "url": "http://127.0.0.1:60501/sse",
-      "description": "Zygisk AI Runtime - Android 动态分析（hook / 内存 / 抓包）"
+      "command": "C:/Users/52334/.workbuddy-ai/binaries/python/envs/default/Scripts/python.exe",
+      "args": [
+        "D:/泪心安卓领域基本盘技术/zygisk_frida_PackerGetPrivateTool/ZygiskAIRuntime/mcp_server.py",
+        "--adb",
+        "C:/Program Files/platform-tools/adb.exe",
+        "--device-port",
+        "60500"
+      ],
+      "description": "Zygisk AI Runtime - Android 动态分析（hook / 内存 / 抓包），stdio 形态"
     }
   }
 }

@@ -1,7 +1,8 @@
-id=zygisk-ai-runtime
-name=Zygisk AI Runtime
+id=zygisk-packettool-tearhacker
+name=Zygisk PacketTool TearHacker
 version=v0.1.0
 versionCode=1
 author=zygisk_frida_PackerGetPrivateTool
 description=Android dynamic analysis runtime. In-process Zygisk entry; analysis logic is driven from the PC side.
-minMagisk=24000
+minMagisk=27000
+zygisk=true
