@@ -24,3 +24,17 @@ Android 侧网络能力走独立 App（PCAPdroid / NetBare），经 IPC 集成�
 
 > 🔴 PCAPdroid 是 **GPL-3.0**：禁止链接或 copy 源码，只能作为独立 App 经 IPC 集成。
 > 详见 `../../docs/00-权威基线/LICENSES.md`。
+
+---
+
+## 作者与社区
+
+**泪心独立研发 —— APP 逆向 / 封包 / 动态内存调试工具。**
+
+```text
+开发者    泪心
+QQ        2254013571
+Q群       435539500
+Discord   https://discord.gg/yghYHcEdD
+官网      http://teargamestorem.top/
+```

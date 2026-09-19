@@ -74,3 +74,17 @@ P-1b  Android 构建项    ✅ 2/4
 > 实际 VS Professional 2026 自带 CMake 4.3.1 + Ninja 1.13.2，
 > 另有独立解压的 NDK r27d。工具链端到端编译已验证通过（ELF64 / AArch64 共享库）。
 > 路径已固化到 `ZygiskAIRuntime/build/config/toolchain.env`。
+
+---
+
+## 作者与社区
+
+**泪心独立研发 —— APP 逆向 / 封包 / 动态内存调试工具。**
+
+```text
+开发者    泪心
+QQ        2254013571
+Q群       435539500
+Discord   https://discord.gg/yghYHcEdD
+官网      http://teargamestorem.top/
+```

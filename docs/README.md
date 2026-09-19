@@ -120,3 +120,17 @@ grep -rn "docs/build/\|docs/archive/\|docs/DEVELOPMENT_GUIDE\|\./STRUCTURE\.md" 
 | 6 | **传输层需支持 TCP 回环** | 总基线 §10.1 冻结 UDS，但 Windows 的 CPython 可能无 `socket.AF_UNIX`（本机 3.13.14 即如此），且真机部署本就要经 `adb forward`。已实现 UDS + TCP 双端点，帧与握手完全一致。**建议正式补进基线 §10.1** |
 | 7 | **IPC 端点（端口 / UDS 路径）协议里没定义** | 2026-09-19 准备实现 Android 侧 IPC 客户端时发现：`ai_analyzer/protocol/constants.py` 与总基线**都搜不到端口或 UDS 路径的约定**，只有 `TRANSPORT_UNIX` / `TRANSPORT_TCP` 两个名字。<br>影响：Android 侧无从知道该连哪里，M2 的「注入 → HELLO/READY」无法闭环。<br>**未擅自定端口**（那属于协议变更，按工程纪律 §19.6 须先改文档与黄金样例）。<br>待裁决：① 固定默认端口（如 6000）；② 还是由配置项/环境变量注入；③ 真机走 UDS 时路径怎么约定（建议 `/data/local/tmp/zai-runtime/<pkg>.sock`，但需 root 侧创建）。 |
 | 8 | **HELLO 用 `protocol`、其它消息用 `version`** | 同名字段两种写法（`protocol` vs `version`），语义相同。实现已按文档原样保留，并提供 `protocol_version_of()` 归一化读取。messages.py 顶部已记录。**是否统一需先改文档与黄金样例** |
+
+---
+
+## 作者与社区
+
+**泪心独立研发 —— APP 逆向 / 封包 / 动态内存调试工具。**
+
+```text
+开发者    泪心
+QQ        2254013571
+Q群       435539500
+Discord   https://discord.gg/yghYHcEdD
+官网      http://teargamestorem.top/
+```

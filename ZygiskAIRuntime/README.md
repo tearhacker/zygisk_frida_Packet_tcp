@@ -265,7 +265,7 @@ MCP Server（Core 25 + Expert 10 工具，能力门禁自动摘除）。
 
 完整核对与三条硬约束见 [`../docs/00-权威基线/LICENSES.md`](../docs/00-权威基线/LICENSES.md)。
 
-## 联系与社区
+## 作者与社区
 
 ```text
 开发者    泪心

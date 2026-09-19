@@ -35,3 +35,17 @@
 ## 当前状态
 
 无研究记录。项目尚未完成首次编译，未进入研究阶段。
+
+---
+
+## 作者与社区
+
+**泪心独立研发 —— APP 逆向 / 封包 / 动态内存调试工具。**
+
+```text
+开发者    泪心
+QQ        2254013571
+Q群       435539500
+Discord   https://discord.gg/yghYHcEdD
+官网      http://teargamestorem.top/
+```
